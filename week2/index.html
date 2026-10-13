@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 2 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 2: Strings, formatting, and pattern matching</h1>
+      <p>Treat all data as strings and use matching instead of ad-hoc parsing.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html">Week 1</a>
+    <a href="../week2/index.html" class="active">Week 2</a>
+    <a href="../week3/index.html">Week 3</a>
+    <a href="../week4/index.html">Week 4</a>
+    <a href="../week5/index.html">Week 5</a>
+    <a href="../week6/index.html">Week 6</a>
+    <a href="../week7/index.html">Week 7</a>
+    <a href="../week8/index.html">Week 8</a>
+    <a href="../week9/index.html">Week 9</a>
+    <a href="../week10/index.html">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-easy">Easy</span>
+        <span class="stars" aria-label="difficulty 2 of 5">★★☆☆☆</span>
+        <span>Workload 6–8 h</span>
+        <span>Shell: <code>tclsh</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>string subcommands</li>
+      <li>append</li>
+      <li>format and scan</li>
+      <li>Glob-style string match</li>
+      <li>Regular expressions: regexp and regsub</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-recap-from-week-1">
+  <summary><h2>0. Recap from Week 1</h2></summary>
+  <div class="learn-drop-body">
+<p>Everything you <code>set</code> is already a <strong>string</strong>. This week you <strong>inspect</strong>, <strong>grow</strong>, <strong>format</strong>, and <strong>match</strong> those strings — you do not invent character-by-character loops.</p>
+<pre class="code"><code class="lang-tcl">set s &quot;Hello&quot;
+puts [string length $s]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>What happens</th></tr></thead><tbody><tr><td><code>set s &quot;Hello&quot;</code></td><td>Store five characters.</td></tr><tr><td><code>[string length $s]</code></td><td>Command <code>string</code>, subcommand <code>length</code>, argument <code>Hello</code> → <code>5</code>.</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="1-the-big-idea">
+  <summary><h2>1. The big idea</h2></summary>
+  <div class="learn-drop-body">
+<p>Tcl has <strong>one</strong> data type at this level: the string. <code>string</code> is a command with <strong>subcommands</strong> (like <code>string length</code>). Matching uses two languages:</p>
+<ul class="list"><li><strong>Glob</strong> — <code>string match</code> (<code>*</code> <code>?</code> <code>[abc]</code>).</li><li><strong>Regexp</strong> — <code>regexp</code> / <code>regsub</code> (<code>. ^ $ * + ? () | []</code>).</li></ul>
+<p>Do not mix them.</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-inspect-length-index-range">
+  <summary><h2>2. Inspect — <code>length</code>, <code>index</code>, <code>range</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set s &quot;Tcl/Tk&quot;
+puts [string length $s]
+puts [string index $s 0]
+puts [string index $s end]
+puts [string range $s 0 2]
+puts [string range $s 4 end]</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Result</th><th>Why</th></tr></thead><tbody><tr><td><code>string length $s</code></td><td><code>6</code></td><td>Count characters (<code>/</code> counts).</td></tr><tr><td><code>string index $s 0</code></td><td><code>T</code></td><td>Zero-based.</td></tr><tr><td><code>string index $s end</code></td><td><code>k</code></td><td><code>end</code> is the last index.</td></tr><tr><td><code>string range $s 0 2</code></td><td><code>Tcl</code></td><td>Inclusive range.</td></tr><tr><td><code>string range $s 4 end</code></td><td><code>Tk</code></td><td>From index 4 through last.</td></tr></tbody></table></div>
+<h3 id="try-a-bug">Try a bug</h3>
+<pre class="code"><code class="lang-tcl">puts [string range $s 0 20]</code></pre>
+<p>Out-of-range <code>range</code> still returns what exists (or empty). Fix: check <code>length</code> if you need a hard error.</p>
+  </div>
+</details>
+<details class="learn-drop" id="3-search-and-compare-first-last-compare-equal">
+  <summary><h2>3. Search and compare — <code>first</code>, <code>last</code>, <code>compare</code>, <code>equal</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set path &quot;/tmp/run.log&quot;
+puts [string first &quot;.log&quot; $path]
+puts [string last &quot;/&quot; $path]
+puts [string equal Tcl tcl]
+puts [string compare abc abd]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>Result</th><th>Meaning</th></tr></thead><tbody><tr><td><code>string first &quot;.log&quot; $path</code></td><td>start index of first match, or <code>-1</code></td><td>Find a substring.</td></tr><tr><td><code>string last &quot;/&quot; $path</code></td><td>last <code>/</code></td><td>Useful for “dirname vs tail”.</td></tr><tr><td><code>string equal Tcl tcl</code></td><td><code>0</code></td><td>Case-sensitive.</td></tr><tr><td><code>string compare abc abd</code></td><td>negative</td><td>Like C <code>strcmp</code> (<code>&lt;0</code>, <code>0</code>, <code>&gt;0</code>).</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="4-case-and-trim">
+  <summary><h2>4. Case and trim</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set raw &quot;  ERROR  &quot;
+puts &quot;&gt;[string trim $raw]&lt;&quot;
+puts [string tolower ERROR]
+puts [string toupper lvs]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>Role</th></tr></thead><tbody><tr><td><code>string trim</code></td><td>Strip whitespace (or given chars) from both ends.</td></tr><tr><td><code>string trimleft</code> / <code>trimright</code></td><td>One side only.</td></tr><tr><td><code>tolower</code> / <code>toupper</code> / <code>totitle</code></td><td>Case.</td></tr></tbody></table></div>
+<p><strong>Lab habit:</strong> trim <strong>before</strong> you match.</p>
+  </div>
+</details>
+<details class="learn-drop" id="5-grow-a-string-append">
+  <summary><h2>5. Grow a string — <code>append</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set out &quot;&quot;
+append out &quot;a&quot;
+append out &quot; &quot; &quot;b&quot;
+puts $out</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>What happens</th></tr></thead><tbody><tr><td><code>set out &quot;&quot;</code></td><td>Empty accumulator.</td></tr><tr><td><code>append out &quot;a&quot;</code></td><td>In-place grow — efficient in a loop.</td></tr><tr><td><code>append out &quot; &quot; &quot;b&quot;</code></td><td>Extra args are concatenated.</td></tr></tbody></table></div>
+<h3 id="why-not-set-out-outmore">Why not <code>set out &quot;$out$more&quot;</code>?</h3>
+<p>That copies the whole string each time. Prefer <code>append</code> when building output.</p>
+  </div>
+</details>
+<details class="learn-drop" id="6-format-sprintf-style-output">
+  <summary><h2>6. <code>format</code> — sprintf-style output</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set code 402
+set net N12
+puts [format &quot;ERROR (LVS-%s): net %s&quot; $code $net]
+puts [format &quot;%-8s %04d&quot; MET 7]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>%s</code></td><td>String.</td></tr><tr><td><code>%d</code> / <code>%04d</code></td><td>Integer, zero-padded width 4.</td></tr><tr><td><code>%-8s</code></td><td>Left-aligned field width 8.</td></tr></tbody></table></div>
+<p>Quotes keep the format string <strong>one</strong> argument.</p>
+  </div>
+</details>
+<details class="learn-drop" id="7-scan-sscanf-style-input">
+  <summary><h2>7. <code>scan</code> — sscanf-style input</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this-real-tclsh">Type this (real <code>tclsh</code>)</h3>
+<pre class="code"><code class="lang-tcl">set line &quot;x=3 y=4&quot;
+scan $line &quot;x=%d y=%d&quot; a b
+puts &quot;a=$a b=$b&quot;</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>What happens</th></tr></thead><tbody><tr><td><code>scan $line &quot;x=%d y=%d&quot; a b</code></td><td>Parse into variables <code>a</code> and <code>b</code>. Returns count of conversions.</td></tr><tr><td>Character sets</td><td><code>%[a-z]</code> (see the books) when fields are letters.</td></tr></tbody></table></div>
+<p>If the line is messy, <code>regexp</code> is clearer than a huge <code>scan</code> format.</p>
+  </div>
+</details>
+<details class="learn-drop" id="8-glob-matching-string-match">
+  <summary><h2>8. Glob matching — <code>string match</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">puts [string match &quot;*.log&quot; run.log]
+puts [string match &quot;*.log&quot; run.txt]
+puts [string match &quot;LVS-???&quot; LVS-402]
+puts [string match {[A-Z]*} Error]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Pattern</th><th>Meaning</th></tr></thead><tbody><tr><td><code>*</code></td><td>Any string.</td></tr><tr><td><code>?</code></td><td>One character.</td></tr><tr><td><code>[abc]</code> / <code>[A-Z]</code></td><td>Character class.</td></tr><tr><td><code>\x</code></td><td>Literal <code>x</code>.</td></tr></tbody></table></div>
+<p><strong>This is not regexp.</strong> <code>*.log</code> as a regexp would mean “any chars, then one <code>l</code>, then <code>og</code>” in a different way — do not pass glob patterns to <code>regexp</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="9-regexp-test-and-capture">
+  <summary><h2>9. <code>regexp</code> — test and capture</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this-real-tclsh">Type this (real <code>tclsh</code>)</h3>
+<pre class="code"><code class="lang-tcl">set line &quot;ERROR (LVS-402): Short detected at net N12 on layer MET1&quot;
+regexp {ERROR \(([A-Z]+)-([0-9]+)\):} $line -&gt; tool num
+puts &quot;tool=$tool num=$num&quot;
+regexp {net ([A-Za-z0-9]+) on layer ([A-Za-z0-9]+)} $line -&gt; net layer
+puts &quot;net=$net layer=$layer&quot;</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Role</th></tr></thead><tbody><tr><td><code>{ERROR \(([A-Z]+)-([0-9]+)\):}</code></td><td>Braces: pattern is <strong>one</strong> argument; <code>()</code> are regexp grouping, not Tcl grouping.</td></tr><tr><td><code>$line</code></td><td>Subject string.</td></tr><tr><td><code>-&gt; tool num</code></td><td>First match of whole pattern is stored in <code>-&gt;</code> (dummy); groups in <code>tool</code>, <code>num</code>.</td></tr><tr><td><code>-nocase</code> / <code>-indices</code></td><td>Book switches — try them after the basic form works.</td></tr></tbody></table></div>
+<h3 id="try-a-bug">Try a bug</h3>
+<pre class="code"><code class="lang-tcl">regexp ERROR (LVS-402) $line</code></pre>
+<p>Without braces/quotes, Tcl sees extra arguments. Fix: brace the pattern.</p>
+  </div>
+</details>
+<details class="learn-drop" id="10-regsub-rewrite">
+  <summary><h2>10. <code>regsub</code> — rewrite</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this-real-tclsh">Type this (real <code>tclsh</code>)</h3>
+<pre class="code"><code class="lang-tcl">set p &quot;/home/eda/work/run.log&quot;
+regsub {/home/eda} $p {/proj} q
+puts $q
+regsub -all { +} &quot;a   b  c&quot; { } compact
+puts &quot;&gt;$compact&lt;&quot;</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>regsub pattern string replacement var</code></td><td>Write result into <code>var</code>; returns count of substitutions.</td></tr><tr><td><code>-all</code></td><td>Every match, not just the first.</td></tr><tr><td><code>&amp;</code> / <code>\1</code></td><td>Whole match / group 1 in the replacement (see the books).</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="11-mini-script-normalize-and-parse-a-log-line">
+  <summary><h2>11. Mini script — normalize and parse a log line</h2></summary>
+  <div class="learn-drop-body">
+<p>Save as <code>demo_week2.tcl</code> and run <code>tclsh demo_week2.tcl</code>.</p>
+<pre class="code"><code class="lang-tcl">proc normalize {s} {
+    set s [string trim $s]
+    regsub -all {[ \t]+} $s { } s
+    return $s
+}
+
+proc parse_lvs {line} {
+    set line [normalize $line]
+    if {![regexp {ERROR \(([A-Z]+)-([0-9]+)\):} $line -&gt; tool code]} {
+        return [list]
+    }
+    regexp {net ([A-Za-z0-9]+) on layer ([A-Za-z0-9]+)} $line -&gt; net layer
+    return [list $tool $code $net $layer]
+}
+
+set raw &quot;  ERROR  (LVS-402): Short detected at net N12 on layer MET1  &quot;
+puts [normalize $raw]
+puts [parse_lvs $raw]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>Role</th></tr></thead><tbody><tr><td><code>normalize</code></td><td>Trim + collapse whitespace with <code>regsub -all</code>.</td></tr><tr><td><code>parse_lvs</code></td><td>Two <code>regexp</code> captures → a list of fields.</td></tr><tr><td>Empty list</td><td>Parse failure — caller can <code>llength</code> check (Week 3).</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="12-five-teaching-examples-for-your-deliverable">
+  <summary><h2>12. Five teaching examples for your deliverable</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="example-a-trim-then-match">Example A — trim then match</h3>
+<pre class="code"><code class="lang-tcl">set s &quot;  foo.log  &quot;
+puts [string match *.log [string trim $s]]</code></pre>
+<h3 id="example-b-format-vs-concat">Example B — <code>format</code> vs concat</h3>
+<pre class="code"><code class="lang-tcl">set n 7
+puts [format &quot;cell_%04d&quot; $n]</code></pre>
+<h3 id="example-c-glob-is-not-regexp">Example C — glob is not regexp</h3>
+<pre class="code"><code class="lang-tcl">puts [string match &quot;LVS-*&quot; LVS-402]
+# regexp {LVS-*}  is a different language — do not swap them</code></pre>
+<h3 id="example-d-bug-then-fix-unbraced-regexp">Example D — BUG then FIX (unbraced regexp)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: regexp ERROR (LVS-402): $line
+# FIX:
+regexp {ERROR \(LVS-402\):} $line</code></pre>
+<h3 id="example-e-bug-then-fix-append-vs-accidental-extra-args-to-puts">Example E — BUG then FIX (<code>append</code> vs accidental extra args to <code>puts</code>)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: puts Hello world
+# FIX:
+set msg &quot;&quot;
+append msg Hello &quot; &quot; world
+puts $msg</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="13-lab-checklist-from-the-main-planner">
+  <summary><h2>13. Lab checklist (from the main planner)</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li>Proc to normalize messy whitespace to single spaces</li><li>Parse a tool-log line (code, net, layer) with <code>scan</code> <strong>or</strong> <code>regexp</code></li><li>Rewrite a path or assignment with <code>regsub</code></li><li>5–10 sample input lines and expected output</li><li>Use book patterns only — no extra packages</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="14-deliverable-skeleton-week02-stringstcl">
+  <summary><h2>14. Deliverable skeleton — <code>week02_strings.tcl</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl"># week02_strings.tcl
+#
+# Samples (input → expected):
+#   &quot;  a   b  &quot; → &quot;a b&quot;
+#   ERROR (LVS-402): ... net N12 on layer MET1 → LVS 402 N12 MET1
+#   ...
+
+proc normalize {s} {
+    set s [string trim $s]
+    # TODO: regsub -all whitespace
+    return $s
+}
+
+# TODO: parse_lvs, rewrite_path
+# TODO: loop over sample lines and puts expected vs got</code></pre>
+<p>Run:</p>
+<pre class="code"><code class="lang-bash">tclsh week02_strings.tcl</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="15-when-you-get-stuck">
+  <summary><h2>15. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<ol class="list"><li>Print the <strong>raw</strong> string with <code>puts &quot;&gt;$s&lt;&quot;</code>.  </li><li>Ask: glob or regexp?  </li><li>Brace the pattern so Tcl grouping does not eat <code>()</code> <code>[]</code>.  </li><li>Then ask what <code>regexp</code>/<code>regsub</code> does with that pattern.</li></ol>
+  </div>
+</details>
+<details class="learn-drop" id="16-readings-pointer-optional">
+  <summary><h2>16. Readings pointer (optional)</h2></summary>
+  <div class="learn-drop-body">
+<p>Columbia Part I Ch. 4 <em>string processing</em> and/or Tk Book draft Ch. 2 <em>Strings and Pattern Matching</em>. Type boxed examples. This file is the lab companion.</p>
+<p><em>End of Week 2 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab, or run the examples in <code>tclsh</code>.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Proc to normalize whitespace</li>
+      <li>Extract a numeric field with scan or regexp</li>
+      <li>Rewrite a line with regsub</li>
+      <li>Use book patterns only — no extra packages</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p>In-browser sandbox for <code>string</code> basics. Use real <code>tclsh</code> for <code>regexp</code>, <code>regsub</code>, and <code>scan</code>.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 2 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../week1/index.html">Week 1</a>
+      <a href="../week3/index.html">Week 3</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"), {
+        note: "Browser sandbox (string length/index/range/tolower). For week02_strings.tcl use real tclsh.",
+        examples: [
+          { id: "length", title: "string length / index / range", code: "set s \"Tcl/Tk\"\nputs [string length $s]\nputs [string index $s 0]\nputs [string index $s end]\nputs [string range $s 0 2]" },
+          { id: "case", title: "trim + tolower", code: "set raw \"  ERROR  \"\nputs \">[string trim $raw]<\"\nputs [string tolower ERROR]\nputs [string toupper lvs]" }
+        ]
+      });
+      if (window.WeekQuiz) WeekQuiz.mount(2);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>

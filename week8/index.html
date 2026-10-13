@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 8 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 8: Events, buttons, and form widgets</h1>
+      <p>Connect user actions to Tcl commands with correct scope.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html">Week 1</a>
+    <a href="../week2/index.html">Week 2</a>
+    <a href="../week3/index.html">Week 3</a>
+    <a href="../week4/index.html">Week 4</a>
+    <a href="../week5/index.html">Week 5</a>
+    <a href="../week6/index.html">Week 6</a>
+    <a href="../week7/index.html">Week 7</a>
+    <a href="../week8/index.html" class="active">Week 8</a>
+    <a href="../week9/index.html">Week 9</a>
+    <a href="../week10/index.html">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-hard">Challenging</span>
+        <span class="stars" aria-label="difficulty 4 of 5">★★★★☆</span>
+        <span>Workload 6–8 h</span>
+        <span>Shell: <code>wish</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>bind / bindtags; key, button, modifiers, sequences</li>
+      <li>Button -command and scope; check/radio Tcl variables</li>
+      <li>Menus, popup, option menu</li>
+      <li>frame/toplevel/label/message/scale/scrollbar/bell</li>
+      <li>entry and listbox programming; select modes</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-recap">
+  <summary><h2>0. Recap</h2></summary>
+  <div class="learn-drop-body">
+<p>Week 4: <code>$x</code> inside a quoted script is substituted <strong>when that script is built</strong>. Week 7: <code>-command</code> is such a script. This week you put <strong>proc names</strong> in <code>-command</code> and <code>bind</code> so values are read <strong>later</strong>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="1-bind-and-percent-substitutions">
+  <summary><h2>1. <code>bind</code> and percent substitutions</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">bind .e &lt;Return&gt; {AddItem}
+bind .l &lt;Double-Button-1&gt; {UseSelection}</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>.e</code></td><td>Widget (or class, or <code>all</code> — see bindtags).</td></tr><tr><td><code>&lt;Return&gt;</code></td><td>Event.</td></tr><tr><td><code>&lt;Double-Button-1&gt;</code></td><td>Sequence.</td></tr><tr><td><code>{AddItem}</code></td><td>Script run <strong>at event time</strong>. Braces defer <code>$</code>.</td></tr><tr><td><code>%W %x %y %K</code></td><td>Event fields, <strong>not</strong> <code>$</code> variables.</td></tr></tbody></table></div>
+<p><code>bindtags</code> order (typical): widget → class → toplevel → <code>all</code>. <code>break</code> in a binding stops later tags.</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-buttons-and-tcl-variables">
+  <summary><h2>2. Buttons and Tcl variables</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">set state(name) &quot;&quot;
+entry .e -textvariable state(name)
+button .add -text Add -command AddItem
+checkbutton .v -text Verbose -variable state(verbose) -onvalue 1 -offvalue 0
+radiobutton .a -text A -variable state(mode) -value a</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Option</th><th>Why</th></tr></thead><tbody><tr><td><code>-command AddItem</code></td><td>Call a proc; the proc reads <code>state(...)</code> <strong>now</strong>.</td></tr><tr><td><code>-textvariable</code> / <code>-variable</code></td><td>Widget stores into a Tcl variable (use your global array).</td></tr></tbody></table></div>
+<h3 id="try-a-bug-stale">Try a bug (stale <code>$</code>)</h3>
+<pre class="code"><code class="lang-tcl">set item apple
+button .b -text Go -command &quot;puts $item&quot;
+set item banana
+# click still prints apple</code></pre>
+<p>Fix: <code>-command {puts $state(item)}</code> with braces <strong>or</strong> better <code>-command ShowItem</code> and <code>global state</code> inside the proc.</p>
+  </div>
+</details>
+<details class="learn-drop" id="3-menus">
+  <summary><h2>3. Menus</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">menu .m
+.m add command -label Quit -command exit
+.m add separator
+.m add cascade -label File -menu .m.file
+menu .m.file
+.m.file add command -label Open -command OpenFile
+. configure -menu .m
+# tk_popup .m.file %X %Y
+# tk_optionMenu .opt state(choice) one two three</code></pre>
+<p>Entries are <code>command</code>, check/radio, <code>cascade</code>, <code>separator</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="4-listbox-scrollbar-entry">
+  <summary><h2>4. Listbox + scrollbar + entry</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">listbox .l -height 8 -yscrollcommand {.sb set} -selectmode browse
+scrollbar .sb -command {.l yview}
+entry .e -textvariable state(text)
+button .add -text Add -command AddItem
+button .del -text Delete -command DelItem
+
+proc AddItem {} {
+    global state
+    .l insert end $state(text)
+}
+proc DelItem {} {
+    set i [.l curselection]
+    if {$i ne &quot;&quot;} { .l delete $i }
+}
+proc UseSelection {} {
+    global state
+    set i [.l curselection]
+    if {$i ne &quot;&quot;} { set state(text) [.l get $i] }
+}</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Call</th><th>Role</th></tr></thead><tbody><tr><td><code>.l insert end $s</code></td><td>Append.</td></tr><tr><td><code>.l curselection</code></td><td>Selected index(es).</td></tr><tr><td><code>.l get $i</code> / <code>.l delete $i</code></td><td>Read / remove.</td></tr><tr><td><code>-selectmode</code></td><td><code>browse</code> <code>single</code> <code>extended</code> <code>multiple</code>.</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="5-two-pane-lab-layout">
+  <summary><h2>5. Two-pane lab layout</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-text">[ menubar ]
+[ listbox | scrollbar ]
+[ entry ] [ Add ] [ Delete ]</code></pre>
+<p>Bind:</p>
+<pre class="code"><code class="lang-tcl"># bind &lt;Return&gt; on entry → AddItem
+# bind &lt;Double-Button-1&gt; on listbox → UseSelection</code></pre>
+<p>Comment those two lines in the deliverable.</p>
+  </div>
+</details>
+<details class="learn-drop" id="6-simple-widgets-ch-15">
+  <summary><h2>6. Simple widgets (Ch. 15)</h2></summary>
+  <div class="learn-drop-body">
+<p><code>frame</code>, <code>toplevel</code>, <code>label</code>, <code>message</code>, <code>scale</code>, <code>scrollbar</code>, <code>bell</code> — use <code>frame</code> for rows; you already need <code>scrollbar</code>. Skim the rest; do not build a widget museum.</p>
+  </div>
+</details>
+<details class="learn-drop" id="7-five-teaching-examples">
+  <summary><h2>7. Five teaching examples</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="a-proc-callback">A — proc callback</h3>
+<pre class="code"><code class="lang-tcl">button .q -text Quit -command exit</code></pre>
+<h3 id="b-braced-bind">B — braced bind</h3>
+<pre class="code"><code class="lang-tcl">bind .e &lt;Return&gt; {AddItem}</code></pre>
+<h3 id="c--textvariable-on-an-array-element">C — <code>-textvariable</code> on an array element</h3>
+<pre class="code"><code class="lang-tcl">entry .e -textvariable state(text)</code></pre>
+<h3 id="d-bug-then-fix-stale-in--command">D — BUG then FIX (stale <code>$</code> in <code>-command</code>)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: -command &quot;puts $item&quot;
+# FIX: -command ShowItem</code></pre>
+<h3 id="e-bug-then-fix-no-global-in-callback">E — BUG then FIX (no <code>global</code> in callback)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: proc AddItem {} { .l insert end $state(text) }
+# FIX: global state</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="8-lab-checklist">
+  <summary><h2>8. Lab checklist</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li>Listbox + scrollbar, entry, Add/Delete, menubar</li><li><code>&lt;Return&gt;</code> and <code>&lt;Double-Button-1&gt;</code></li><li>Callbacks as procs — no inlined stale <code>$</code></li><li>Comment every <code>bind</code></li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="9-deliverable-skeleton-week08-uitcl">
+  <summary><h2>9. Deliverable skeleton — <code>week08_ui.tcl</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">#!/usr/bin/env wish
+# bind .e &lt;Return&gt;           → AddItem
+# bind .l &lt;Double-Button-1&gt;  → UseSelection
+
+proc AddItem {} { global state; # TODO }
+proc DelItem {} { # TODO }
+proc UseSelection {} { global state; # TODO }
+
+# TODO: widgets, pack, menu, bind</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="10-when-you-get-stuck">
+  <summary><h2>10. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<p>If a click uses an old value, the script was substituted at <strong>create</strong> time. If a variable is empty in a proc, add <code>global state</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="11-readings-pointer">
+  <summary><h2>11. Readings pointer</h2></summary>
+  <div class="learn-drop-body">
+<p>Tk Book draft Ch. 13–16.</p>
+<p><em>End of Week 8 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab, or run the examples in <code>wish</code>.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Two-pane UI: listbox, entry, add/delete buttons, menu</li>
+      <li>Bindings for Return and Double-1</li>
+      <li>Callbacks as procs — not inlined scripts with stale $</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p>Practice proc callbacks here. Bindings need <code>wish week08_ui.tcl</code>.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 8 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../week7/index.html">Week 7</a>
+      <a href="../week9/index.html">Week 9</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"), {
+        note: "wish required. Demo why braces defer $ in a proc.",
+        examples: [
+          { id: "stale", title: "read current var inside a proc", code: "set item apple\nproc show {} {\n    global item\n    puts $item\n}\nset item banana\nshow" }
+        ]
+      });
+      if (window.WeekQuiz) WeekQuiz.mount(8);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>

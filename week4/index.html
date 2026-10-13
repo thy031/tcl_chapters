@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 4 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 4: Control flow, procedures, and scope</h1>
+      <p>Write structured scripts that hide state correctly.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html">Week 1</a>
+    <a href="../week2/index.html">Week 2</a>
+    <a href="../week3/index.html">Week 3</a>
+    <a href="../week4/index.html" class="active">Week 4</a>
+    <a href="../week5/index.html">Week 5</a>
+    <a href="../week6/index.html">Week 6</a>
+    <a href="../week7/index.html">Week 7</a>
+    <a href="../week8/index.html">Week 8</a>
+    <a href="../week9/index.html">Week 9</a>
+    <a href="../week10/index.html">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-mid">Moderate</span>
+        <span class="stars" aria-label="difficulty 3 of 5">★★★☆☆</span>
+        <span>Workload 6–8 h</span>
+        <span>Shell: <code>tclsh</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>if / elseif / else, switch</li>
+      <li>foreach, while, for, break, continue</li>
+      <li>catch, error, return</li>
+      <li>proc, global, arrays as global state, upvar</li>
+      <li>Draft extra: rename, uplevel, passing arrays by name</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-recap-braces-defer-substitution">
+  <summary><h2>0. Recap — braces defer substitution</h2></summary>
+  <div class="learn-drop-body">
+<p><code>if</code>, <code>while</code>, <code>for</code>, <code>foreach</code>, and <code>proc</code> bodies must be <code>{...}</code> so <code>$vars</code> are <strong>not</strong> frozen when the line is first parsed (Week 1).</p>
+  </div>
+</details>
+<details class="learn-drop" id="1-if-elseif-else">
+  <summary><h2>1. <code>if</code> / <code>elseif</code> / <code>else</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set n 3
+if {$n &lt; 0} {
+    puts neg
+} elseif {$n == 0} {
+    puts zero
+} else {
+    puts pos
+}</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Why braced</th></tr></thead><tbody><tr><td><code>{$n &lt; 0}</code></td><td>Test re-evaluated; <code>if</code> runs it as an expression.</td></tr><tr><td><code>{ puts pos }</code></td><td>Body not run unless that branch is taken.</td></tr></tbody></table></div>
+<p>Space before <code>{</code> is required (<code>if{</code> is a different command name).</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-switch">
+  <summary><h2>2. <code>switch</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">set sev ERROR
+switch -exact -- $sev {
+    ERROR { puts 2 }
+    WARN  { puts 1 }
+    default { puts 0 }
+}</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>-exact</code> / <code>-glob</code> / <code>-regexp</code></td><td>How the string is matched.</td></tr><tr><td><code>--</code></td><td>End of switches so a value starting with <code>-</code> is safe.</td></tr><tr><td><code>default</code></td><td>Fallback arm.</td></tr><tr><td><code>-</code> as a body</td><td>Fall-through (see the books).</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="3-foreach-for-break-continue">
+  <summary><h2>3. <code>foreach</code>, <code>for</code>, <code>break</code>, <code>continue</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">foreach x [list a b c] {
+    puts $x
+}
+
+for {set i 0} {$i &lt; 3} {incr i} {
+    if {$i == 1} continue
+    puts $i
+}</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>Role</th></tr></thead><tbody><tr><td><code>foreach x $list {body}</code></td><td>Walk a list (Week 3 data).</td></tr><tr><td><code>for {init} {test} {next} {body}</code></td><td>C-style; all four args usually braced.</td></tr><tr><td><code>break</code> / <code>continue</code></td><td>Leave loop / next iteration.</td></tr></tbody></table></div>
+<p>Multi-var <code>foreach</code> (two lists, or <code>foreach {k v} $kv</code>) is in the assigned chapters — type those boxed examples.</p>
+  </div>
+</details>
+<details class="learn-drop" id="4-errors-catch-error-return">
+  <summary><h2>4. Errors — <code>catch</code>, <code>error</code>, <code>return</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this-real-tclsh">Type this (real <code>tclsh</code>)</h3>
+<pre class="code"><code class="lang-tcl">if {[catch {open nosuch.txt r} err]} {
+    puts &quot;failed: $err&quot;
+} else {
+    close $err
+}
+
+catch {error &quot;boom&quot;} msg
+puts $msg</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>catch {script} var</code></td><td><code>0</code> = ok (result in <code>var</code>); <code>1</code> = error (message in <code>var</code>).</td></tr><tr><td><code>error &quot;boom&quot;</code></td><td>Raise. <code>errorInfo</code> / <code>errorCode</code> hold extra detail.</td></tr><tr><td><code>return -code</code></td><td>Can mimic <code>break</code>/<code>continue</code>/<code>error</code> from a helper (books).</td></tr></tbody></table></div>
+<p><strong>Lab rule:</strong> wrap file/<code>exec</code> in <code>catch</code>. Do not assume the path exists.</p>
+  </div>
+</details>
+<details class="learn-drop" id="5-proc-arguments-defaults-and-args">
+  <summary><h2>5. <code>proc</code> arguments — defaults and <code>args</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">proc greet {{who world}} {
+    return &quot;hi $who&quot;
+}
+puts [greet]
+puts [greet Ada]
+
+proc sum {args} {
+    set t 0
+    foreach n $args { set t [expr {$t + $n}] }
+    return $t
+}
+puts [sum 1 2 3]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Form</th><th>Meaning</th></tr></thead><tbody><tr><td><code>{who world}</code></td><td>Default if the caller omits it.</td></tr><tr><td><code>args</code></td><td>Remaining arguments as a list.</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="6-scope-locals-vs-global">
+  <summary><h2>6. Scope — locals vs <code>global</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">set n 1
+proc bump {} {
+    global n
+    incr n
+}
+bump
+puts $n</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Without <code>global n</code></th><th>With <code>global n</code></th></tr></thead><tbody><tr><td><code>incr n</code> uses a <strong>local</strong> (or errors if missing).</td><td>Updates the global <code>n</code>.</td></tr></tbody></table></div>
+<p>Prefer <strong>one global array</strong> (<code>state(...)</code>) over many scalars.</p>
+<pre class="code"><code class="lang-tcl">proc init {} {
+    global state
+    set state(count) 0
+}
+proc bump {} {
+    global state
+    incr state(count)
+}</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="7-upvar-call-by-name">
+  <summary><h2>7. <code>upvar</code> — call-by-name</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">proc push {listVar x} {
+    upvar $listVar L
+    lappend L $x
+}
+set xs {}
+push xs a
+push xs b
+puts $xs</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>What happens</th></tr></thead><tbody><tr><td><code>upvar $listVar L</code></td><td><code>L</code> in this proc <strong>is</strong> the caller’s variable named in <code>$listVar</code>.</td></tr><tr><td><code>lappend L $x</code></td><td>Mutates <code>xs</code> in the caller.</td></tr><tr><td><code>upvar #0 rec rec</code></td><td><code>#0</code> = global frame — another way to reach globals.</td></tr></tbody></table></div>
+<p>Use <code>upvar</code> when a proc must <strong>update</strong> a caller list or array without returning a huge copy.</p>
+  </div>
+</details>
+<details class="learn-drop" id="8-draft-extras-uplevel-rename">
+  <summary><h2>8. Draft extras — <code>uplevel</code>, <code>rename</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl"># rename oldName newName   ;# empty newName deletes
+# uplevel 1 { set x 1 }    ;# run script in the caller’s frame</code></pre>
+<p>Read the boxed examples. You only need them if your helper is a tiny control-structure (like a custom loop).</p>
+  </div>
+</details>
+<details class="learn-drop" id="9-mini-cli-pattern">
+  <summary><h2>9. Mini CLI pattern</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">proc usage {} {
+    puts &quot;usage: tool add name | list&quot;
+}
+
+proc cmd_add {name} {
+    global state
+    lappend state(names) $name
+}
+
+proc cmd_list {} {
+    global state
+    puts [join $state(names) \n]
+}
+
+set state(names) {}
+# pretend argv:
+foreach {op arg} [list add u1 add u2 list {}] {
+    switch -exact -- $op {
+        add  { cmd_add $arg }
+        list { cmd_list }
+        default { usage }
+    }
+}</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="10-five-teaching-examples">
+  <summary><h2>10. Five teaching examples</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="a-braced-if">A — braced <code>if</code></h3>
+<pre class="code"><code class="lang-tcl">if {$x &gt; 0} { puts ok }</code></pre>
+<h3 id="b-foreach-over-a-list">B — <code>foreach</code> over a list</h3>
+<pre class="code"><code class="lang-tcl">foreach row $rows { puts [lindex $row 0] }</code></pre>
+<h3 id="c-catch-around-open">C — <code>catch</code> around <code>open</code></h3>
+<pre class="code"><code class="lang-tcl">if {[catch {open $path r} ch]} { puts $ch; return }</code></pre>
+<h3 id="d-bug-then-fix-quoted-while-test">D — BUG then FIX (quoted <code>while</code> test)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: while &quot;$i &lt; 3&quot; { incr i }   → $i frozen at parse
+# FIX: while {$i &lt; 3} { incr i }</code></pre>
+<h3 id="e-bug-then-fix-missing-global">E — BUG then FIX (missing <code>global</code>)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: proc bump {} { incr n }
+# FIX: proc bump {} { global n; incr n }</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="11-lab-checklist">
+  <summary><h2>11. Lab checklist</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li>CLI mini-tool with a proc API</li><li>One global state array</li><li><code>upvar</code> for an in/out list or array</li><li><code>catch</code> around a failing file/op</li><li>Comment every <code>global</code> / <code>upvar</code> and why</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="12-deliverable-skeleton-week04-procstcl">
+  <summary><h2>12. Deliverable skeleton — <code>week04_procs.tcl</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl"># week04_procs.tcl
+# global state   — why: ...
+# upvar listVar  — why: ...
+
+proc state_init {} {
+    global state
+    set state(items) {}
+}
+
+proc state_add {item} {
+    upvar #0 state S
+    lappend S(items) $item
+}
+
+# TODO: catch open, switch on argv
+state_init
+state_add demo
+puts $state(items)</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="13-when-you-get-stuck">
+  <summary><h2>13. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<p>Ask: <strong>which stack frame owns this name?</strong> Local, global, or <code>upvar</code> alias? Then check braces on the test/body.</p>
+  </div>
+</details>
+<details class="learn-drop" id="14-readings-pointer">
+  <summary><h2>14. Readings pointer</h2></summary>
+  <div class="learn-drop-body">
+<p>Columbia Part I Ch. 6–7; Tk Book draft Ch. 4–5.</p>
+<p><em>End of Week 4 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab, or run the examples in <code>tclsh</code>.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Command-line mini-tool with a proc API</li>
+      <li>Global state array</li>
+      <li>upvar for an in/out list or array</li>
+      <li>catch around a failing operation</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p><code>if</code>/<code>while</code>/<code>proc</code> run here. <code>upvar</code> and <code>catch</code> need real <code>tclsh</code>.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 4 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../week3/index.html">Week 3</a>
+      <a href="../week5/index.html">Week 5</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"), {
+        note: "Sandbox: if/while/proc. Run week04_procs.tcl with real tclsh.",
+        examples: [
+          { id: "if", title: "if / elseif / else", code: "set n 3\nif {$n < 0} {\n    puts neg\n} elseif {$n == 0} {\n    puts zero\n} else {\n    puts pos\n}" },
+          { id: "proc", title: "proc with default-like body", code: "proc greet {who} {\n    return \"hi $who\"\n}\nputs [greet Ada]" }
+        ]
+      });
+      if (window.WeekQuiz) WeekQuiz.mount(4);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>

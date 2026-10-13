@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 7 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 7: Tk fundamentals and geometry</h1>
+      <p>Open windows, name widgets, and pack a simple layout.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html">Week 1</a>
+    <a href="../week2/index.html">Week 2</a>
+    <a href="../week3/index.html">Week 3</a>
+    <a href="../week4/index.html">Week 4</a>
+    <a href="../week5/index.html">Week 5</a>
+    <a href="../week6/index.html">Week 6</a>
+    <a href="../week7/index.html" class="active">Week 7</a>
+    <a href="../week8/index.html">Week 8</a>
+    <a href="../week9/index.html">Week 9</a>
+    <a href="../week10/index.html">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-mid">Moderate</span>
+        <span class="stars" aria-label="difficulty 3 of 5">★★★☆☆</span>
+        <span>Workload 6–8 h</span>
+        <span>Shell: <code>wish</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>wish; widget path names; configure / cget</li>
+      <li>Frames, labels, buttons, entry, text + scrollbar (ExecLog)</li>
+      <li>pack side / fill / expand / padding; cavity model</li>
+      <li>Packing order; pack slaves / pack info; unpacking</li>
+      <li>place: overview only</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-wish-vs-tclsh">
+  <summary><h2>0. <code>wish</code> vs <code>tclsh</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-bash">wish</code></pre>
+<p>Tk scripts are still Tcl. Extra: widgets, <code>pack</code>, the event loop. Root window is <code>.</code>.</p>
+<p>Columbia Part I has <strong>no</strong> Tk — use the Tk Book draft Ch. 10–12.</p>
+  </div>
+</details>
+<details class="learn-drop" id="1-widget-paths-and-configure">
+  <summary><h2>1. Widget paths and <code>configure</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">label .title -text &quot;ExecLog&quot;
+button .quit -text Quit -command exit
+pack .title .quit</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>.title</code></td><td>Child of <code>.</code> named <code>title</code>.</td></tr><tr><td><code>.top.btn</code></td><td>Parent <code>.top</code> <strong>must exist first</strong>.</td></tr><tr><td><code>-text</code> / <code>-command</code></td><td>Options at create time.</td></tr><tr><td><code>.quit configure -text Exit</code></td><td>Change later.</td></tr><tr><td><code>.quit cget -text</code></td><td>Read an option.</td></tr></tbody></table></div>
+<h3 id="try-a-bug">Try a bug</h3>
+<pre class="code"><code class="lang-tcl">button .a.b -text x</code></pre>
+<p>Cannot create <code>.a.b</code> before <code>.a</code>. Fix: <code>frame .a</code> first.</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-pack-cavity-model">
+  <summary><h2>2. Pack cavity model</h2></summary>
+  <div class="learn-drop-body">
+<p>Each packed widget takes a slice of remaining <strong>cavity</strong>.</p>
+<pre class="code"><code class="lang-tcl">frame .row
+button .row.q -text Quit
+button .row.r -text Run
+pack .row.q -side left
+pack .row.r -side left
+pack .row -side top -fill x</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Option</th><th>Effect</th></tr></thead><tbody><tr><td><code>-side</code></td><td><code>top</code> <code>bottom</code> <code>left</code> <code>right</code> — which wall of the cavity.</td></tr><tr><td><code>-fill</code></td><td><code>x</code> <code>y</code> <code>both</code> <code>none</code> — grow into the slice.</td></tr><tr><td><code>-expand</code></td><td>Take extra leftover cavity.</td></tr><tr><td><code>-padx</code> <code>-pady</code></td><td>Outside padding.</td></tr><tr><td><code>-ipadx</code> <code>-ipady</code></td><td>Inside padding.</td></tr><tr><td><code>-anchor</code></td><td>Where in a larger slice the widget sits.</td></tr><tr><td><code>-before</code> <code>-after</code> <code>-in</code></td><td>Order / parent.</td></tr></tbody></table></div>
+<p><strong>Order of <code>pack</code> commands matters.</strong> Pack the widget that must <strong>keep its size first</strong>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="3-scrollbar-before-text-execlog-lesson">
+  <summary><h2>3. Scrollbar before text (ExecLog lesson)</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">text .t -width 40 -height 10 -yscrollcommand {.sb set}
+scrollbar .sb -command {.t yview}
+pack .sb -side right -fill y
+pack .t  -side left  -fill both -expand 1</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Why this order</th><th>If you reverse it</th></tr></thead><tbody><tr><td>Scrollbar claims a thin right strip first.</td><td>Expanding text can starve the scrollbar.</td></tr></tbody></table></div>
+<p>Inspect:</p>
+<pre class="code"><code class="lang-tcl">puts [pack slaves .]
+pack info .t</code></pre>
+<p><code>pack forget .t</code> unpacks (widget still exists). <code>pack propagate</code> — read the chapter before you turn it off.</p>
+  </div>
+</details>
+<details class="learn-drop" id="4-stripped-execlog-lab">
+  <summary><h2>4. Stripped ExecLog lab</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">wm title . week07
+label .title -text &quot;week07 pack&quot;
+frame .btns
+button .btns.quit -text Quit -command exit
+button .btns.run  -text Run  -command {puts run}
+entry .cmd -width 40
+scrollbar .sb -command {.log yview}
+text .log -width 50 -height 12 -yscrollcommand {.sb set}
+
+pack .title -side top -anchor w
+pack .btns  -side top -fill x
+pack .btns.quit .btns.run -side left -padx 4
+pack .cmd   -side top -fill x
+pack .sb    -side right -fill y
+pack .log   -side left -fill both -expand 1</code></pre>
+<p>Change <strong>one</strong> of <code>-fill</code> / <code>-expand</code> / <code>-side</code> at a time. Note what happens (ASCII or screenshot).</p>
+  </div>
+</details>
+<details class="learn-drop" id="5-place-overview-only">
+  <summary><h2>5. <code>place</code> overview only</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl"># place .b -x 10 -y 10
+# place .b -relx 0.5 -rely 0.5 -anchor center</code></pre>
+<p>Coordinates, not the default manager this week. <code>raise</code> / <code>lower</code> change stacking, which is <strong>not</strong> pack order.</p>
+  </div>
+</details>
+<details class="learn-drop" id="6-five-teaching-examples">
+  <summary><h2>6. Five teaching examples</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="a-parent-before-child">A — parent before child</h3>
+<pre class="code"><code class="lang-tcl">frame .m
+button .m.q -text Quit -command exit
+pack .m.q
+pack .m</code></pre>
+<h3 id="b-fill-x-on-a-toolbar">B — fill x on a toolbar</h3>
+<pre class="code"><code class="lang-tcl">pack .btns -side top -fill x</code></pre>
+<h3 id="c-scrollbar-then-text">C — scrollbar then text</h3>
+<pre class="code"><code class="lang-tcl">pack .sb -side right -fill y
+pack .t  -fill both -expand 1</code></pre>
+<h3 id="d-bug-then-fix-ab-first">D — BUG then FIX (<code>.a.b</code> first)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: button .a.b
+# FIX: frame .a ; button .a.b</code></pre>
+<h3 id="e-bug-then-fix-pack-expand-text-first">E — BUG then FIX (pack expand text first)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: pack .t -fill both -expand 1 ; pack .sb
+# FIX: pack .sb first</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="7-lab-checklist">
+  <summary><h2>7. Lab checklist</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li>Stripped ExecLog: title, button row, entry, text + scrollbar</li><li>Pack scrollbar <strong>before</strong> text</li><li>Change one pack option at a time; record before/after</li><li><code>week07_pack.tcl</code> runs under <code>wish</code></li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="8-deliverable-skeleton-week07-packtcl">
+  <summary><h2>8. Deliverable skeleton — <code>week07_pack.tcl</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">#!/usr/bin/env wish
+# week07_pack.tcl
+# Notes:
+#   pack .sb then .log  — scrollbar keeps width
+#   -expand 1 on .log   — leftover cavity
+wm title . week07
+# TODO: widgets + pack as above</code></pre>
+<p>Run: <code>wish week07_pack.tcl</code></p>
+  </div>
+</details>
+<details class="learn-drop" id="9-when-you-get-stuck">
+  <summary><h2>9. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<p>Sketch the cavity after each <code>pack</code>. If a widget vanished, it was packed with <code>-fill</code>/<code>-expand</code> stolen by a sibling, or the parent was not packed.</p>
+  </div>
+</details>
+<details class="learn-drop" id="10-readings-pointer">
+  <summary><h2>10. Readings pointer</h2></summary>
+  <div class="learn-drop-body">
+<p>Tk Book draft Ch. 10 <em>Tk Fundamentals</em>, Ch. 11 <em>Tk by Example</em>, Ch. 12 <em>The Pack Geometry Manager</em>.</p>
+<p><em>End of Week 7 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab, or run the examples in <code>wish</code>.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Stripped ExecLog: title, buttons, entry, text + scrollbar</li>
+      <li>Pack scrollbar first</li>
+      <li>Change one pack option at a time and record the visual effect</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p>Tk does not run in the browser. Use this sandbox for Tcl grouping; run <code>wish week07_pack.tcl</code> locally.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 7 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../week6/index.html">Week 6</a>
+      <a href="../week8/index.html">Week 8</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"), {
+        note: "wish required for pack. Sandbox is Tcl-only.",
+        examples: [
+          { id: "proc", title: "callback as a proc (no Tk)", code: "proc run {} {\n    puts run\n}\nrun" }
+        ]
+      });
+      if (window.WeekQuiz) WeekQuiz.mount(7);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>

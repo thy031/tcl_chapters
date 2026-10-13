@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 10 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 10: Callbacks, C-API map, and capstone</h1>
+      <p>Finish a small end-to-end Tk tool and know where C extensions sit.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html">Week 1</a>
+    <a href="../week2/index.html">Week 2</a>
+    <a href="../week3/index.html">Week 3</a>
+    <a href="../week4/index.html">Week 4</a>
+    <a href="../week5/index.html">Week 5</a>
+    <a href="../week6/index.html">Week 6</a>
+    <a href="../week7/index.html">Week 7</a>
+    <a href="../week8/index.html">Week 8</a>
+    <a href="../week9/index.html">Week 9</a>
+    <a href="../week10/index.html" class="active">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-hard">Hard · Checkpoint B</span>
+        <span class="stars" aria-label="difficulty 5 of 5">★★★★★</span>
+        <span>Workload 8+ h</span>
+        <span>Shell: <code>wish</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>after, fileevent; send at concept level</li>
+      <li>C map: Tcl_Main, Tcl_AppInit, command procedures, result, eval from C</li>
+      <li>Capstone: global array, file I/O + catch, packed UI, one bind</li>
+      <li>Optional reading: Ch. 22–28, 30</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-capstone-shapes-pick-one">
+  <summary><h2>0. Capstone shapes (pick one)</h2></summary>
+  <div class="learn-drop-body">
+<ol class="list"><li>Interactive log analyzer / tool runner (ExecLog lineage; tagged text + filters).  </li><li>Record browser (Week 6 app + listbox).  </li><li>Canvas netlist/layout annotator.</li></ol>
+<p><strong>Must:</strong></p>
+<ol class="list"><li>Global array state; explicit <code>global</code> / <code>upvar</code>.  </li><li>File I/O with <code>catch</code>.  </li><li>Packed UI ≥2 widget classes + at least one <code>bind</code>.  </li><li>README: how to run, chapters used, one substitution bug you fixed.  </li><li>Optional: one-page C-API sketch (boxes, no code).</li></ol>
+  </div>
+</details>
+<details class="learn-drop" id="1-after-timers-without-freezing">
+  <summary><h2>1. <code>after</code> — timers without freezing</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">proc tick {} {
+    global state
+    incr state(n)
+    .t configure -text $state(n)
+    set state(after) [after 500 tick]
+}
+proc stop {} {
+    global state
+    after cancel $state(after)
+}</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>after 500 tick</code></td><td>Run <code>tick</code> in 500 ms via the <strong>event loop</strong>.</td></tr><tr><td><code>after idle {pack .b}</code></td><td>After pending events.</td></tr><tr><td><code>after cancel id</code></td><td>Stop a pending handler.</td></tr></tbody></table></div>
+<p>Do <strong>not</strong> <code>while {1} { exec ... }</code> inside a button — the window will freeze. That is what <code>after</code> / <code>fileevent</code> are for.</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-fileevent-channels-without-blocking-the-ui">
+  <summary><h2>2. <code>fileevent</code> — channels without blocking the UI</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">set ch [open &quot;|uname -a&quot; r]
+fileevent $ch readable [list GotLine $ch]
+proc GotLine {ch} {
+    if {[gets $ch line] &gt;= 0} {
+        .log insert end $line\n
+    } else {
+        close $ch
+    }
+}</code></pre>
+<p>When the pipe has data, Tcl calls <code>GotLine</code>. Pair with Week 5 <code>catch</code>/<code>close</code>.</p>
+<p><code>send</code> talks to another Tk interpreter — understand the idea; you need not demo it if security blocks it.</p>
+  </div>
+</details>
+<details class="learn-drop" id="3-c-api-map-reading-level-ch-29">
+  <summary><h2>3. C-API map (reading level, Ch. 29)</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-text">Tcl_Main / Tk_Main
+        → Tcl_AppInit
+              → Tcl_CreateCommand(&quot;myop&quot;, MyOpProc, ...)
+                    → MyOpProc(ClientData, Tcl_Interp*, argc, argv[])
+                          → Tcl_SetResult(...)
+                          → return TCL_OK or TCL_ERROR
+        → eval loop (Tcl_Eval / Tcl_EvalFile)</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>Tcl_AppInit</code></td><td>Your hook: register commands, <code>source</code> <code>init.tcl</code>.</td></tr><tr><td>Command proc</td><td>Looks like a Tcl command to scripts.</td></tr><tr><td>Result</td><td>Goes through the interp, not <code>printf</code> alone.</td></tr><tr><td><code>Tcl_Eval</code></td><td>C asks Tcl to run a script.</td></tr></tbody></table></div>
+<p>A <code>.so</code> / custom <code>wish</code> is <strong>optional</strong>. A one-page box diagram is enough.</p>
+<p>Re-read Columbia Part I intro: a lot is already possible in Tcl-only + Tk.</p>
+  </div>
+</details>
+<details class="learn-drop" id="4-wiring-the-must-list-onto-a-log-viewer">
+  <summary><h2>4. Wiring the must-list onto a log viewer</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">proc AppInit {} {
+    global app
+    set app(filter) ERROR
+    set app(path) &quot;&quot;
+}
+
+proc AppLoad {path} {
+    global app
+    if {[catch {open $path r} ch]} {
+        return $ch
+    }
+    .t delete 1.0 end
+    while {[gets $ch line] &gt;= 0} {
+        AppAppend $line
+    }
+    close $ch
+    set app(path) $path
+}
+
+proc AppAppend {line} {
+    global app
+    if {[string match *$app(filter)* $line] || $app(filter) eq &quot;&quot;} {
+        .t insert end $line\n
+    }
+}
+# bind .e &lt;Return&gt; {AppLoad $app(path)}   ;# comment in README</code></pre>
+<p>That sample already hits: array, <code>global</code>, <code>catch</code> open, <code>text</code>+<code>entry</code> (two classes), one <code>bind</code>. Add <code>pack</code> from Week 7.</p>
+  </div>
+</details>
+<details class="learn-drop" id="5-five-teaching-examples">
+  <summary><h2>5. Five teaching examples</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="a-after-heartbeat">A — <code>after</code> heartbeat</h3>
+<pre class="code"><code class="lang-tcl">after 1000 tick</code></pre>
+<h3 id="b-fileevent-instead-of-blocking-read">B — <code>fileevent</code> instead of blocking <code>read</code></h3>
+<pre class="code"><code class="lang-tcl">fileevent $ch readable [list Got $ch]</code></pre>
+<h3 id="c-capstone-catch-on-open">C — capstone <code>catch</code> on open</h3>
+<pre class="code"><code class="lang-tcl">if {[catch {open $p r} ch]} { tk_messageBox -message $ch; return }</code></pre>
+<h3 id="d-bug-then-fix-blocking-in--command">D — BUG then FIX (blocking in <code>-command</code>)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: button -command {exec long_tool}   → frozen UI
+# FIX: fileevent or after + incremental read</code></pre>
+<h3 id="e-bug-then-fix-week-8-stale-again">E — BUG then FIX (Week 8 stale <code>$</code> again)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: bind .e &lt;Return&gt; &quot;Load $path&quot;
+# FIX: bind .e &lt;Return&gt; LoadCurrent</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="6-lab-checklist-checkpoint-b">
+  <summary><h2>6. Lab checklist (Checkpoint B)</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li><code>week10_capstone/</code> runs under <code>wish</code></li><li>Global array + explicit <code>global</code>/<code>upvar</code></li><li>File I/O with <code>catch</code></li><li>Packed UI, ≥2 widget classes, ≥1 <code>bind</code></li><li>README: run, chapters, one substitution bug</li><li>Optional C-API sketch</li><li>Do <strong>not</strong> turn this into an unbounded C project</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="7-deliverable-skeleton">
+  <summary><h2>7. Deliverable skeleton</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-text">week10_capstone/
+  app.tcl
+  README.md
+  samples/
+  c-api-sketch.txt   (optional)</code></pre>
+<pre class="code"><code class="lang-tcl">#!/usr/bin/env wish
+# app.tcl — Checkpoint B
+proc AppInit {} { global app; set app(filter) &quot;&quot; }
+proc AppLoad {path} { global app; # catch open ... }
+# pack + bind here
+AppInit</code></pre>
+<p>README template:</p>
+<ul class="list"><li>Run: <code>wish app.tcl</code></li><li>Chapters: e.g. 12, 13, 16, 18, 21</li><li>Substitution bug: <code>-command &quot;puts $x&quot;</code> frozen; fixed by a proc</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="8-when-you-get-stuck">
+  <summary><h2>8. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<p>If the window ignores clicks, you are blocked in <code>exec</code>/<code>read</code>. If filters use old strings, braces/<code>proc</code> (Week 1 + 8). If C reading overwhelms you, stop at the box diagram.</p>
+  </div>
+</details>
+<details class="learn-drop" id="9-readings-pointer">
+  <summary><h2>9. Readings pointer</h2></summary>
+  <div class="learn-drop-body">
+<p>Columbia Part I intro (review). Tk Book draft Ch. 21 (<code>after</code>, <code>fileevent</code>, <code>send</code>); Ch. 29 C map. Optional Ch. 22–28, 30 <strong>after</strong> the capstone runs.</p>
+<p><em>End of Week 10 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab, or run the examples in <code>wish</code>.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Capstone wish app: state array + explicit global/upvar</li>
+      <li>Read or write a file with catch</li>
+      <li>Packed UI with at least two widget classes and one bind</li>
+      <li>README: how to run, chapters used, one substitution bug you fixed</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p>Checkpoint B runs under <code>wish</code>. Use the sandbox only for Tcl substitution checks.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 10 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../week9/index.html">Week 9</a>
+      <a href="../quiz/index.html">Review quiz</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"), {
+        note: "Capstone is wish. Sandbox: grouping/substitution only.",
+        examples: [
+          { id: "filter", title: "filter lines in Tcl", code: "proc keep {line filt} {\n    if {$filt eq \"\"} { return 1 }\n    return [string equal $filt [string range $line 0 [expr {[string length $filt]-1}]]]\n}\nputs [keep \"ERROR x\" ERROR]\nputs [keep \"INFO y\" ERROR]" }
+        ]
+      });
+      if (window.WeekQuiz) WeekQuiz.mount(10);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>

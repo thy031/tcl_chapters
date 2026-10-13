@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 1 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 1: Tcl mental model and first scripts</h1>
+      <p>Run the interpreter and master command syntax, grouping, and substitution.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html" class="active">Week 1</a>
+    <a href="../week2/index.html">Week 2</a>
+    <a href="../week3/index.html">Week 3</a>
+    <a href="../week4/index.html">Week 4</a>
+    <a href="../week5/index.html">Week 5</a>
+    <a href="../week6/index.html">Week 6</a>
+    <a href="../week7/index.html">Week 7</a>
+    <a href="../week8/index.html">Week 8</a>
+    <a href="../week9/index.html">Week 9</a>
+    <a href="../week10/index.html">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-easy">Easy</span>
+        <span class="stars" aria-label="difficulty 2 of 5">★★☆☆☆</span>
+        <span>Workload 6–8 h</span>
+        <span>Shell: <code>tclsh</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>puts, set, expr, string, incr, proc, while</li>
+      <li>Grouping with braces and quotes</li>
+      <li>$ variable substitution, [] command substitution, \ backslash</li>
+      <li>Comments and Hello World</li>
+      <li>The three interpreter steps: grouping → substitution → invocation</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-start-the-interpreter">
+  <summary><h2>0. Start the interpreter</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-bash">tclsh</code></pre>
+<p>You should see a prompt like <code>%</code>. Type Tcl there. Exit with:</p>
+<pre class="code"><code class="lang-tcl">exit</code></pre>
+<p>Or run a script file later with:</p>
+<pre class="code"><code class="lang-bash">tclsh week01_basics.tcl</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="1-the-big-idea-before-any-code">
+  <summary><h2>1. The big idea (before any code)</h2></summary>
+  <div class="learn-drop-body">
+<p>Tcl does <strong>not</strong> work like Python or C. Almost everything is a <strong>command</strong>:</p>
+<pre class="code"><code class="lang-text">commandName  arg1  arg2  arg3 ...</code></pre>
+<p>Words are separated by <strong>spaces</strong>. A command ends at a <strong>newline</strong> or a <strong>semicolon</strong> <code>;</code>.</p>
+<p>Every line is processed in <strong>exactly three steps</strong>:</p>
+<ol class="list"><li><strong>Grouping</strong> — decide where arguments start/end (<code>{}</code>, <code>&quot;&quot;</code>, spaces).</li><li><strong>Substitution</strong> — fill in <code>$var</code>, <code>[command]</code>, and <code>\...</code>.</li><li><strong>Invocation</strong> — run the command with the finished argument strings.</li></ol>
+<p><strong>Single-pass rule:</strong> after substitution, Tcl does <strong>not</strong> re-group. If <code>$x</code> contains spaces, those spaces are already <em>inside</em> one argument (or they split words only if you used bare <code>$x</code> without quotes — see §5).</p>
+<p>When something looks weird, draw those three steps on paper before adding more commands.</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-hello-world-puts">
+  <summary><h2>2. Hello World — <code>puts</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">puts Hello
+puts &quot;Hello, world!&quot;
+puts {Hello, world!}</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>What happens</th></tr></thead><tbody><tr><td><code>puts Hello</code></td><td>Command name is <code>puts</code>. One argument: the string <code>Hello</code>. <code>puts</code> writes it to stdout and adds a newline.</td></tr><tr><td><code>puts &quot;Hello, world!&quot;</code></td><td>Quotes <strong>group</strong> two words into <strong>one</strong> argument so the space does not start a new argument. Then <code>puts</code> prints that one string.</td></tr><tr><td><code>puts {Hello, world!}</code></td><td>Braces also group into one argument. Here <code>$</code>, <code>[]</code>, and most <code>\</code> are <strong>not</strong> substituted inside <code>{}</code>. Same printed result as the quoted line for this plain text.</td></tr></tbody></table></div>
+<h3 id="try-a-bug">Try a bug</h3>
+<pre class="code"><code class="lang-tcl">puts Hello, world!</code></pre>
+<p>Tcl sees <strong>three</strong> arguments after <code>puts</code> (<code>Hello,</code> <code>world!</code> — wait: actually <code>Hello,</code> and <code>world!</code> if comma sticks to Hello… depending on commas). Safer demo of the bug:</p>
+<pre class="code"><code class="lang-tcl">puts Hello world</code></pre>
+<p><strong>Why it fails / misbehaves:</strong> <code>puts</code> expects one main string (optional stream first). Extra words confuse it. Fix: quote or brace the message.</p>
+  </div>
+</details>
+<details class="learn-drop" id="3-variables-set-and">
+  <summary><h2>3. Variables — <code>set</code> and <code>$</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set name Ada
+puts $name
+puts &quot;Hello, $name!&quot;
+puts {Hello, $name!}
+set name</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>What happens</th></tr></thead><tbody><tr><td><code>set name Ada</code></td><td>Command <code>set</code>. Argument 1: variable name <code>name</code>. Argument 2: value <code>Ada</code>. Creates/updates the variable. <code>set</code> also <strong>returns</strong> the value.</td></tr><tr><td><code>puts $name</code></td><td>Grouping: words <code>puts</code> and <code>$name</code>. Substitution: <code>$name</code> → <code>Ada</code>. Invocation: <code>puts</code> with argument <code>Ada</code>.</td></tr><tr><td><code>puts &quot;Hello, $name!&quot;</code></td><td>Inside <code>&quot;...&quot;</code>, <code>$name</code> <strong>is</strong> substituted → <code>Hello, Ada!</code>.</td></tr><tr><td><code>puts {Hello, $name!}</code></td><td>Inside <code>{...}</code>, <code>$name</code> is <strong>literal text</strong>. Prints <code>Hello, $name!</code> with a dollar sign visible.</td></tr><tr><td><code>set name</code></td><td><code>set</code> with only the name <strong>reads</strong> the variable and returns its value (here <code>Ada</code>).</td></tr></tbody></table></div>
+<h3 id="brace-form-of-variable-names">Brace form of variable names</h3>
+<pre class="code"><code class="lang-tcl">set x 10
+puts ${x}toys</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>${x}</code></td><td>Variable name is clearly <code>x</code> (not <code>xtoys</code>).</td></tr><tr><td><code>toys</code></td><td>Plain text stuck after the value → prints <code>10toys</code>.</td></tr></tbody></table></div>
+<p>Without braces, <code>$xtoys</code> would look for a variable named <code>xtoys</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="4-math-expr-only-place-that-does-arithmetic">
+  <summary><h2>4. Math — <code>expr</code> (only place that does arithmetic)</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set a 3
+set b 4
+puts [expr {$a + $b}]
+puts &quot;sum is [expr {$a + $b}]&quot;</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Line / piece</th><th>What happens</th></tr></thead><tbody><tr><td><code>set a 3</code></td><td>Store string <code>3</code> in <code>a</code>. (Everything is a string; <code>expr</code> will treat it as a number.)</td></tr><tr><td><code>[expr {$a + $b}]</code></td><td><strong>Command substitution:</strong> run <code>expr</code> with one argument <code>{ $a + $b }</code> (after grouping). Inside the braced expr body, Tcl still substitutes <code>$a</code> and <code>$b</code> <em>as part of expr’s rules for that form</em> — standard safe style is <code>expr {$a + $b}</code>. Result string <code>7</code> replaces the whole <code>[...]</code>.</td></tr><tr><td><code>puts [expr {$a + $b}]</code></td><td>After substitution becomes <code>puts 7</code>.</td></tr><tr><td>Nested in quotes</td><td>Quotes allow <code>$</code> and <code>[]</code>. So <code>&quot;sum is [expr ...]&quot;</code> becomes <code>sum is 7</code>.</td></tr></tbody></table></div>
+<h3 id="important-contrast">Important contrast</h3>
+<pre class="code"><code class="lang-tcl">puts 1+2
+puts [expr {1+2}]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>Result</th><th>Why</th></tr></thead><tbody><tr><td><code>puts 1+2</code></td><td>prints <code>1+2</code></td><td>No <code>expr</code> — just characters.</td></tr><tr><td><code>puts [expr {1+2}]</code></td><td>prints <code>3</code></td><td><code>expr</code> evaluates math.</td></tr></tbody></table></div>
+<p>Prefer <code>expr {...}</code> with braces around the expression (course rule: braces for code bodies).</p>
+  </div>
+</details>
+<details class="learn-drop" id="5-grouping-deep-dive-vs">
+  <summary><h2>5. Grouping deep dive — <code>{}</code> vs <code>&quot;&quot;</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set x &quot;two words&quot;
+puts $x
+puts &quot;$x&quot;
+puts {$x}</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>After substitution</th><th>Meaning</th></tr></thead><tbody><tr><td><code>puts $x</code></td><td>Often becomes two words <code>two</code> and <code>words</code></td><td>Bare <code>$x</code> can <strong>split</strong> into multiple arguments if the value has spaces. Easy source of bugs.</td></tr><tr><td><code>puts &quot;$x&quot;</code></td><td>one argument <code>two words</code></td><td>Quotes keep it <strong>one</strong> argument after <code>$</code> is filled in.</td></tr><tr><td><code>puts {$x}</code></td><td>one argument <code>$x</code></td><td>No substitution — literal dollar-x.</td></tr></tbody></table></div>
+<p><strong>Rule of thumb for Week 1:</strong><br></p>
+<ul class="list"><li>Code bodies (<code>while</code>, <code>proc</code>, <code>expr</code> args): use <code>{...}</code>.  </li><li>Text that needs <code>$</code> or <code>[]</code>: use <code>&quot;...&quot;</code>.  </li><li>Prefer <code>&quot;$x&quot;</code> over bare <code>$x</code> when printing or passing values that might contain spaces.</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="6-command-substitution">
+  <summary><h2>6. Command substitution — <code>[]</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set n [expr {2 * 5}]
+puts &quot;n is $n&quot;
+puts &quot;length of hello is [string length hello]&quot;</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>What happens</th></tr></thead><tbody><tr><td><code>[expr {2 * 5}]</code></td><td>Nested script runs first; result <code>10</code> replaces the brackets.</td></tr><tr><td><code>set n ...</code></td><td>Variable <code>n</code> becomes <code>10</code>.</td></tr><tr><td><code>[string length hello]</code></td><td><code>string</code> is a command; subcommand <code>length</code>; argument <code>hello</code> → <code>5</code>.</td></tr></tbody></table></div>
+<p><strong>Order inside one line:</strong> innermost <code>[...]</code> runs when substitutions happen (step 2), then the outer command runs (step 3).</p>
+  </div>
+</details>
+<details class="learn-drop" id="7-backslash">
+  <summary><h2>7. Backslash — <code>\</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">puts &quot;line1
+line2&quot;
+puts &quot;quote: \&quot;hi\&quot;&quot;
+puts &quot;dollar: \$name&quot;
+puts &quot;path: C:\temp&quot;</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Escape</th><th>Meaning</th></tr></thead><tbody><tr><td><code>
+</code></td><td>newline</td></tr><tr><td><code>\&quot;</code></td><td>a literal <code>&quot;</code> inside a quoted string</td></tr><tr><td><code>\$</code></td><td>literal <code>$</code> (no variable substitution)</td></tr><tr><td><code>\</code></td><td>one backslash</td></tr></tbody></table></div>
+<p>Inside <code>{...}</code>, most of these stay literal (braces disable normal substitution). Use quotes when you want <code>
+</code> to mean newline.</p>
+<p><strong>Line continuation:</strong></p>
+<pre class="code"><code class="lang-tcl">puts &quot;hello \
+world&quot;</code></pre>
+<p><code>\</code> before the newline joins the next line; surrounding whitespace collapses to a space → often prints <code>hello world</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="8-comments">
+  <summary><h2>8. Comments — <code>#</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl"># This is a full-line comment
+set x 1 ;# comment after a command</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Form</th><th>OK?</th><th>Why</th></tr></thead><tbody><tr><td><code># comment</code> at start of line</td><td>Yes</td><td><code>#</code> sits where a <strong>command name</strong> is expected.</td></tr><tr><td><code>set x 1 ;# comment</code></td><td>Yes</td><td>After <code>;</code>, a new command position starts; <code>#</code> begins a comment command.</td></tr><tr><td><code>set x 1 # bad</code></td><td>No</td><td><code>#</code> is not in command position — Tcl thinks <code>#</code> / <code>bad</code> are extra arguments to <code>set</code>.</td></tr></tbody></table></div>
+<h3 id="intentional-bug-lab">Intentional bug (lab)</h3>
+<pre class="code"><code class="lang-tcl">set x 1 # mid-line comment wrong</code></pre>
+<p>Fix: use <code>;#</code> or put <code>#</code> on its own line.</p>
+  </div>
+</details>
+<details class="learn-drop" id="9-loops-while-and-incr">
+  <summary><h2>9. Loops — <code>while</code> and <code>incr</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set i 0
+set sum 0
+while {$i &lt; 5} {
+    set sum [expr {$sum + $i}]
+    incr i
+}
+puts &quot;sum=$sum i=$i&quot;</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>What happens</th></tr></thead><tbody><tr><td><code>set i 0</code></td><td>Loop counter.</td></tr><tr><td><code>set sum 0</code></td><td>Running total.</td></tr><tr><td><code>while {$i &lt; 5} { ... }</code></td><td>Command <code>while</code>. Arg1: test expression in braces (not substituted until <code>while</code> evaluates it each time). Arg2: body in braces (not run until the loop runs).</td></tr><tr><td><code>{$i &lt; 5}</code></td><td>Each iteration, <code>while</code> evaluates this as a boolean (via expr-like rules). True while <code>i</code> is 0..4.</td></tr><tr><td><code>set sum [expr {$sum + $i}]</code></td><td>Add current <code>i</code> into <code>sum</code>.</td></tr><tr><td><code>incr i</code></td><td>Add 1 to integer variable <code>i</code> (default +1). Shortcut for <code>set i [expr {$i + 1}]</code>.</td></tr><tr><td>After loop</td><td><code>sum</code> is <code>0+1+2+3+4</code> = <code>10</code>; <code>i</code> is <code>5</code>.</td></tr></tbody></table></div>
+<h3 id="why-the-body-must-be-braced">Why the body must be braced</h3>
+<p>If you wrote the body in quotes, <code>$i</code> and <code>$sum</code> could be substituted <strong>once</strong> when the <code>while</code> line is first parsed — wrong. Braces <strong>defer</strong> substitution until each iteration.</p>
+<h3 id="space-before-common-week-1-bug">Space before <code>{</code> (common Week 1 bug)</h3>
+<pre class="code"><code class="lang-tcl"># WRONG — missing space: Tcl may see a weird command name
+while{$i &lt; 5}{
+    incr i
+}</code></pre>
+<pre class="code"><code class="lang-tcl"># RIGHT — space separates command name from arguments
+while {$i &lt; 5} {
+    incr i
+}</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="10-procedures-proc">
+  <summary><h2>10. Procedures — <code>proc</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">proc add {a b} {
+    return [expr {$a + $b}]
+}
+puts [add 3 4]
+puts [add 10 20]</code></pre>
+<h3 id="line-by-line">Line-by-line</h3>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>What happens</th></tr></thead><tbody><tr><td><code>proc add {a b} { ... }</code></td><td>Defines a <strong>new command</strong> named <code>add</code>.</td></tr><tr><td><code>{a b}</code></td><td>Argument list: two parameters, <code>a</code> and <code>b</code>. Braced so the list is one grouping unit.</td></tr><tr><td>Body <code>{ return [expr {$a + $b}] }</code></td><td>Stored as a script string. Not executed at definition time (braces).</td></tr><tr><td><code>return [...]</code></td><td>Exit the proc, giving that string as the result.</td></tr><tr><td><code>puts [add 3 4]</code></td><td>Calls <code>add</code> with <code>a=3</code>, <code>b=4</code>; result <code>7</code> printed.</td></tr></tbody></table></div>
+<h3 id="two-argument-proc-without-return-also-fine">Two-argument proc without <code>return</code> (also fine)</h3>
+<p>The value of the <strong>last command</strong> in the body is the result if you omit <code>return</code>:</p>
+<pre class="code"><code class="lang-tcl">proc add2 {a b} {
+    expr {$a + $b}
+}
+puts [add2 1 2]</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="11-putting-it-together-annotated-mini-script">
+  <summary><h2>11. Putting it together — annotated mini script</h2></summary>
+  <div class="learn-drop-body">
+<p>Save as <code>demo_week1.tcl</code> and run <code>tclsh demo_week1.tcl</code>, or paste block by block.</p>
+<pre class="code"><code class="lang-tcl"># demo_week1.tcl — every line explained below
+
+puts &quot;=== Week 1 demo ===&quot;
+
+set name &quot;Ada&quot;
+puts &quot;Hello, $name!&quot;
+
+set a 3
+set b 5
+puts &quot;a+b = [expr {$a + $b}]&quot;
+
+set i 0
+set sum 0
+while {$i &lt;= 3} {
+    set sum [expr {$sum + $i}]
+    incr i
+}
+puts &quot;sum 0..3 = $sum&quot;
+
+proc greet {who} {
+    return &quot;hi, $who&quot;
+}
+puts [greet $name]</code></pre>
+<h3 id="line-by-line-walkthrough">Line-by-line walkthrough</h3>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>Role</th></tr></thead><tbody><tr><td><code># demo_week1...</code></td><td>Comment (command position).</td></tr><tr><td><code>puts &quot;=== ... ===&quot;</code></td><td>Print a banner; quotes keep spaces as one argument.</td></tr><tr><td><code>set name &quot;Ada&quot;</code></td><td>Assign string with quotes (optional for a single word).</td></tr><tr><td><code>puts &quot;Hello, $name!&quot;</code></td><td>Quote group + variable substitution.</td></tr><tr><td><code>set a 3</code> / <code>set b 5</code></td><td>Numeric strings for later <code>expr</code>.</td></tr><tr><td><code>puts &quot;a+b = [expr {$a + $b}]&quot;</code></td><td>Nested command substitution inside a quoted string.</td></tr><tr><td><code>set i 0</code> / <code>set sum 0</code></td><td>Loop state.</td></tr><tr><td><code>while {$i &lt;= 3} { ... }</code></td><td>Deferred test + body; both braced.</td></tr><tr><td><code>set sum [expr {$sum + $i}]</code></td><td>Update total using command substitution.</td></tr><tr><td><code>incr i</code></td><td>Counter bump.</td></tr><tr><td><code>puts &quot;sum 0..3 = $sum&quot;</code></td><td>Show result (<code>6</code>).</td></tr><tr><td><code>proc greet {who} { ... }</code></td><td>New command; body braced.</td></tr><tr><td><code>return &quot;hi, $who&quot;</code></td><td>Build result with substitution inside quotes <strong>when the proc runs</strong>.</td></tr><tr><td><code>puts [greet $name]</code></td><td>Call proc; print <code>hi, Ada</code>.</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="12-five-teaching-examples-for-your-deliverable">
+  <summary><h2>12. Five teaching examples for your deliverable</h2></summary>
+  <div class="learn-drop-body">
+<p>Include these (or equivalents) in the comment block / script of <code>week01_basics.tcl</code>. Two must be bugs you hit and fixed.</p>
+<h3 id="example-a-quotes-substitute-braces-do-not">Example A — quotes substitute, braces do not</h3>
+<pre class="code"><code class="lang-tcl">set x 7
+puts &quot;x=$x&quot;    ;# → x=7
+puts {x=$x}    ;# → x=$x</code></pre>
+<h3 id="example-b-command-substitution">Example B — command substitution</h3>
+<pre class="code"><code class="lang-tcl">puts [expr {2+2}]   ;# → 4</code></pre>
+<h3 id="example-c-safe-loop-body-braces">Example C — safe loop body braces</h3>
+<pre class="code"><code class="lang-tcl">set n 0
+while {$n &lt; 3} {
+    puts &quot;n=$n&quot;
+    incr n
+}</code></pre>
+<h3 id="example-d-bug-then-fix-missing-space-before-brace">Example D — BUG then FIX (missing space before brace)</h3>
+<pre class="code"><code class="lang-tcl"># BUG:
+# while{$n &lt; 3}{ incr n }
+
+# FIX:
+while {$n &lt; 3} {
+    incr n
+}</code></pre>
+<h3 id="example-e-bug-then-fix-comment-not-in-command-position">Example E — BUG then FIX (comment not in command position)</h3>
+<pre class="code"><code class="lang-tcl"># BUG:
+# set x 1 # oops
+
+# FIX:
+set x 1 ;# ok</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="13-lab-checklist-from-the-main-planner">
+  <summary><h2>13. Lab checklist (from the main planner)</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li>Interactive <code>tclsh</code>: <code>puts</code>, <code>set</code>, <code>expr</code></li><li><code>while</code> + <code>incr</code> running sum</li><li>One <code>proc</code> taking two numeric arguments</li><li>Break at least one script with wrong braces / bad <code>#</code>, then fix it</li><li>Write one-page notes <em>or</em> top-of-file comments: 3-step model + five examples (two bugs)</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="14-deliverable-skeleton-week01-basicstcl">
+  <summary><h2>14. Deliverable skeleton — <code>week01_basics.tcl</code></h2></summary>
+  <div class="learn-drop-body">
+<p>Create this file in <code>tcl_learning/week1/</code> (or wherever you keep weekly labs). Fill the comment block in your own words.</p>
+<pre class="code"><code class="lang-tcl"># week01_basics.tcl
+#
+# Tcl 3-step evaluation model:
+#   1) Grouping   — decide argument boundaries ({}, &quot;&quot;, spaces)
+#   2) Substitution — $, [], \
+#   3) Invocation — run the command with finished string args
+# Single-pass: substituted text is NOT re-grouped.
+#
+# Five examples (include two bugs+fixes):
+#   1) ...
+#   2) ...
+#   3) ...
+#   4) BUG: ...  FIX: ...
+#   5) BUG: ...  FIX: ...
+
+puts &quot;Hello, world!&quot;
+
+set a 3
+set b 4
+puts &quot;sum=[expr {$a + $b}]&quot;
+
+set i 0
+set total 0
+while {$i &lt; 5} {
+    set total [expr {$total + $i}]
+    incr i
+}
+puts &quot;total=$total&quot;
+
+proc add {x y} {
+    return [expr {$x + $y}]
+}
+puts &quot;add(10,20)=[add 10 20]&quot;</code></pre>
+<p>Run:</p>
+<pre class="code"><code class="lang-bash">tclsh week01_basics.tcl</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="15-when-you-get-stuck">
+  <summary><h2>15. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<ol class="list"><li>Write the line.  </li><li>Underline each argument after <strong>grouping</strong>.  </li><li>Rewrite the line after <strong>substitution</strong>.  </li><li>Only then ask what the <strong>command</strong> does with those strings.</li></ol>
+<p>Most Week 1 bugs are braces vs quotes, missing space before <code>{</code>, or <code>#</code> in the wrong place — not “wrong algorithms.”</p>
+  </div>
+</details>
+<details class="learn-drop" id="16-readings-pointer-optional-books-not-required-to-use-this-file">
+  <summary><h2>16. Readings pointer (optional; books not required to use this file)</h2></summary>
+  <div class="learn-drop-body">
+<p>If you have the PDFs: Columbia Part I Ch. 1–2 and/or Tk Book draft Ch. 1. Type every boxed example. This <code>week1planner.md</code> is the line-by-line companion for the lab, not a replacement for those chapters when you have them.</p>
+<p><em>End of Week 1 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab and Run / Debug the matching example.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Interactive tclsh session <em>or</em> the in-page Coding lab</li>
+      <li>Reproduce Hello World, variable and command substitution</li>
+      <li>A tiny while + incr loop and a two-argument proc</li>
+      <li>Break one script with wrong braces, then fix it</li>
+      <li>Use <strong>Debug</strong> in the coding lab to see grouping → substitution → invocation</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p>In-browser Week 1 sandbox. Pick an example from the teaching notes, edit it, then <strong>Run</strong> or <strong>Debug</strong>.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 1 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../index.html">Previous</a>
+      <a href="../week2/index.html">Week 2</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"));
+      if (window.WeekQuiz) WeekQuiz.mount(1);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>

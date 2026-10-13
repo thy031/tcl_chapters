@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 3 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 3: Lists and arrays (Tcl data structures)</h1>
+      <p>Use lists for sequences and arrays for maps; stop concatenating strings as data.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html">Week 1</a>
+    <a href="../week2/index.html">Week 2</a>
+    <a href="../week3/index.html" class="active">Week 3</a>
+    <a href="../week4/index.html">Week 4</a>
+    <a href="../week5/index.html">Week 5</a>
+    <a href="../week6/index.html">Week 6</a>
+    <a href="../week7/index.html">Week 7</a>
+    <a href="../week8/index.html">Week 8</a>
+    <a href="../week9/index.html">Week 9</a>
+    <a href="../week10/index.html">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-mid">Moderate</span>
+        <span class="stars" aria-label="difficulty 3 of 5">★★★☆☆</span>
+        <span>Workload 6–8 h</span>
+        <span>Shell: <code>tclsh</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>list, lappend, concat</li>
+      <li>llength, lindex, lrange, linsert, lreplace, lsearch, lsort</li>
+      <li>split and join</li>
+      <li>Array set/get and the array command</li>
+      <li>env; optional unset, info, trace (draft extra)</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-recap">
+  <summary><h2>0. Recap</h2></summary>
+  <div class="learn-drop-body">
+<p>A <strong>list</strong> is a string that obeys command grouping (spaces, <code>{}</code>, quotes). An <strong>array</strong> is a map: <code>name(key)</code> → value. Related fields belong in <strong>one</strong> array, not ten scalars.</p>
+  </div>
+</details>
+<details class="learn-drop" id="1-build-lists-correctly-list-lappend-concat">
+  <summary><h2>1. Build lists correctly — <code>list</code>, <code>lappend</code>, <code>concat</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set a &quot;two words&quot;
+set bad &quot;$a extra&quot;
+set good [list $a extra]
+puts &quot;bad=$bad&quot;
+puts &quot;good=$good&quot;
+puts [llength $bad]
+puts [llength $good]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>After grouping</th><th>Meaning</th></tr></thead><tbody><tr><td><code>&quot;$a extra&quot;</code></td><td>one string <code>two words extra</code></td><td>Looks like three words if you later treat it as a list.</td></tr><tr><td><code>[list $a extra]</code></td><td>two elements: <code>{two words}</code> and <code>extra</code></td><td><code>list</code> quotes elements that need it.</td></tr><tr><td><code>llength</code></td><td>3 vs 2</td><td>Proof that concat-by-quotes is not <code>list</code>.</td></tr></tbody></table></div>
+<pre class="code"><code class="lang-tcl">set L [list]
+lappend L u1 AND2
+lappend L u2 NAND2
+puts $L</code></pre>
+<p><code>lappend</code> grows a list <strong>in place</strong> (like <code>append</code> for strings).</p>
+<p><code>concat</code> flattens one level of lists into one list — use it to join list values, not random strings.</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-read-lists-llength-lindex-lrange">
+  <summary><h2>2. Read lists — <code>llength</code>, <code>lindex</code>, <code>lrange</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set row [list u1 AND2 10 20]
+puts [llength $row]
+puts [lindex $row 0]
+puts [lindex $row end]
+puts [lrange $row 1 2]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>Role</th></tr></thead><tbody><tr><td><code>llength</code></td><td>Count elements (not characters).</td></tr><tr><td><code>lindex $row 0</code></td><td>First field.</td></tr><tr><td><code>lindex $row end</code></td><td>Last field.</td></tr><tr><td><code>lrange $row 1 2</code></td><td>Inclusive slice as a list.</td></tr></tbody></table></div>
+<h3 id="nested-lists">Nested lists</h3>
+<pre class="code"><code class="lang-tcl">set table [list [list u1 AND2] [list u2 NAND2]]
+puts [lindex $table 0]
+puts [lindex [lindex $table 0] 1]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>Result</th></tr></thead><tbody><tr><td><code>lindex $table 0</code></td><td><code>{u1 AND2}</code> (one row).</td></tr><tr><td><code>lindex [lindex $table 0] 1</code></td><td><code>AND2</code></td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="3-edit-linsert-lreplace">
+  <summary><h2>3. Edit — <code>linsert</code>, <code>lreplace</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">set L [list a b c]
+puts [linsert $L 1 X]
+puts [lreplace $L 1 1 Y]
+puts $L</code></pre>
+<p>These commands <strong>return a new list</strong>; they do not change <code>$L</code> unless you <code>set L [...]</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="4-search-and-sort-lsearch-lsort">
+  <summary><h2>4. Search and sort — <code>lsearch</code>, <code>lsort</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">set cells [list AND2 NAND2 NOR2]
+puts [lsearch -exact $cells NAND2]
+puts [lsearch -glob $cells N*]
+puts [lsort $cells]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Switch</th><th>Meaning</th></tr></thead><tbody><tr><td><code>-exact</code></td><td>Literal element.</td></tr><tr><td><code>-glob</code></td><td>Week-2 glob language.</td></tr><tr><td><code>-regexp</code></td><td>Week-2 regexp language.</td></tr></tbody></table></div>
+<p><code>-1</code> means not found.</p>
+  </div>
+</details>
+<details class="learn-drop" id="5-split-and-join">
+  <summary><h2>5. <code>split</code> and <code>join</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">set line &quot;u1,AND2,10,20&quot;
+set row [split $line ,]
+puts [llength $row]
+puts [join $row |]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>Role</th></tr></thead><tbody><tr><td><code>split $line ,</code></td><td>Delimiter → list of fields.</td></tr><tr><td>`join $row \</td><td>`</td></tr></tbody></table></div>
+<p>This is how a file line becomes a row (Week 5 will <code>gets</code> the line).</p>
+  </div>
+</details>
+<details class="learn-drop" id="6-arrays-set-arrkey-arri">
+  <summary><h2>6. Arrays — <code>set arr(key)</code>, <code>$arr($i)</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this-real-tclsh">Type this (real <code>tclsh</code>)</h3>
+<pre class="code"><code class="lang-tcl">set inst(u1,cell) AND2
+set inst(u1,x) 10
+set inst(u1,y) 20
+set name u1
+puts $inst($name,cell)
+puts [array exists inst]
+puts [array names inst]
+puts [array size inst]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>inst(u1,cell)</code></td><td>One array <code>inst</code>; key is the string <code>u1,cell</code>.</td></tr><tr><td><code>$inst($name,cell)</code></td><td>Substitute <code>$name</code> first, then look up.</td></tr><tr><td><code>array names</code></td><td>List of keys (order not guaranteed).</td></tr><tr><td><code>array get</code> / <code>array set</code></td><td>Flatten / restore as a key-value list.</td></tr></tbody></table></div>
+<h3 id="try-a-bug">Try a bug</h3>
+<pre class="code"><code class="lang-tcl">puts $inst(u1, cell)</code></pre>
+<p>Space inside <code>()</code> is part of the key (or a syntax mess). Keys are strings — no casual spaces.</p>
+  </div>
+</details>
+<details class="learn-drop" id="7-two-representations-of-a-table">
+  <summary><h2>7. Two representations of a table</h2></summary>
+  <div class="learn-drop-body">
+<p><strong>List of lists</strong> (rows):</p>
+<pre class="code"><code class="lang-tcl">set rows {}
+lappend rows [list u1 AND2 10 20]
+lappend rows [list u2 NAND2 30 40]</code></pre>
+<p><strong>Array keyed by <code>inst,attribute</code>:</strong></p>
+<pre class="code"><code class="lang-tcl">set rec(u1,cell) AND2
+set rec(u1,x) 10
+set rec(u2,cell) NAND2</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Style</th><th>Strength</th></tr></thead><tbody><tr><td>List of lists</td><td>Ordered dump, <code>foreach</code> rows.</td></tr><tr><td>Array</td><td>Fast lookup by instance name.</td></tr></tbody></table></div>
+<p>The lab asks you to implement <strong>both</strong> views behind the same procs.</p>
+  </div>
+</details>
+<details class="learn-drop" id="8-mini-procs-record-add-record-get-record-dump">
+  <summary><h2>8. Mini procs — <code>record_add</code> / <code>record_get</code> / <code>record_dump</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">proc record_add {name cell x y} {
+    global rec
+    set rec($name,cell) $cell
+    set rec($name,x) $x
+    set rec($name,y) $y
+    lappend rec(_names) $name
+}
+
+proc record_get {name attr} {
+    global rec
+    return $rec($name,$attr)
+}
+
+proc record_dump {} {
+    global rec
+    foreach name $rec(_names) {
+        puts [format &quot;%s %s %s %s&quot; $name $rec($name,cell) $rec($name,x) $rec($name,y)]
+    }
+}
+
+record_add u1 AND2 10 20
+record_add u2 NAND2 30 40
+puts [record_get u1 cell]
+record_dump</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>Why</th></tr></thead><tbody><tr><td><code>global rec</code></td><td>Array lives in the global namespace (Week 4 will explain scope).</td></tr><tr><td><code>rec(_names)</code></td><td>Remember insertion order; <code>array names</code> will not.</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="9-optional-extras-draft">
+  <summary><h2>9. Optional extras (draft)</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li><code>unset rec(u1,x)</code> — drop one key.  </li><li><code>info exists rec(u1,cell)</code> — test before read.  </li><li><code>trace variable</code> — watch writes (optional).  </li><li><code>env</code> — <code>$::env(PATH)</code> is an array of the environment.</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="10-five-teaching-examples">
+  <summary><h2>10. Five teaching examples</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="a-list-vs-quotes">A — <code>list</code> vs quotes</h3>
+<pre class="code"><code class="lang-tcl">set x &quot;a b&quot;
+puts [llength [list $x]]
+puts [llength &quot;$x&quot;]</code></pre>
+<h3 id="b-lappend-in-a-loop">B — <code>lappend</code> in a loop</h3>
+<pre class="code"><code class="lang-tcl">set L {}
+foreach w [list a b c] { lappend L $w }</code></pre>
+<h3 id="c-nested-lindex">C — nested <code>lindex</code></h3>
+<pre class="code"><code class="lang-tcl">puts [lindex [lindex [list [list 1 2]] 0] 1]</code></pre>
+<h3 id="d-bug-then-fix-comma-key-with-space">D — BUG then FIX (comma key with space)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: set rec(u1, cell) AND2
+# FIX:
+set rec(u1,cell) AND2</code></pre>
+<h3 id="e-bug-then-fix-forgot-global">E — BUG then FIX (forgot <code>global</code>)</h3>
+<pre class="code"><code class="lang-tcl"># BUG inside proc: set rec(u1,cell) AND2  → local array, empty outside
+# FIX: global rec</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="11-lab-checklist">
+  <summary><h2>11. Lab checklist</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li>Table as list-of-lists <strong>and</strong> as an array keyed by <code>inst,attribute</code></li><li><code>record_add</code>, <code>record_get</code>, <code>record_dump</code></li><li>Query, update, pretty-print</li><li>Notes comparing the two representations (optional)</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="12-deliverable-skeleton-week03-datatcl">
+  <summary><h2>12. Deliverable skeleton — <code>week03_data.tcl</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl"># week03_data.tcl
+# Two representations: rows (list of lists) vs rec() array.
+
+proc record_add {name cell x y} {
+    global rec rows
+    # TODO
+}
+
+proc record_get {name attr} {
+    global rec
+    # TODO
+}
+
+proc record_dump {} {
+    global rec
+    # TODO
+}
+
+record_add u1 AND2 10 20
+record_add u2 NAND2 30 40
+puts [record_get u1 cell]
+record_dump</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="13-when-you-get-stuck">
+  <summary><h2>13. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<p>Draw the list as boxes of words, not as characters. If an element has a space, it must have been built with <code>list</code>/<code>lappend</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="14-readings-pointer">
+  <summary><h2>14. Readings pointer</h2></summary>
+  <div class="learn-drop-body">
+<p>Columbia Part I Ch. 5 <em>Lists</em>, Ch. 8 <em>Arrays</em>; Tk Book draft Ch. 3 <em>Tcl Data Structures</em>.</p>
+<p><em>End of Week 3 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab, or run the examples in <code>tclsh</code>.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Represent a small table as a list-of-lists and as an array</li>
+      <li>Query, update, and pretty-print it</li>
+      <li>record_add, record_get, record_dump</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p>List commands may work in the sandbox if you stay with <code>list</code>/<code>lindex</code>. Arrays and <code>foreach</code> need real <code>tclsh</code>.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 3 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../week2/index.html">Week 2</a>
+      <a href="../week4/index.html">Week 4</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"), {
+        note: "Sandbox is a Tcl subset. Run week03_data.tcl with real tclsh.",
+        examples: [
+          { id: "list", title: "list vs quotes", code: "set a \"two words\"\nputs [string length $a]\nputs [string index $a 0]" }
+        ]
+      });
+      if (window.WeekQuiz) WeekQuiz.mount(3);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>

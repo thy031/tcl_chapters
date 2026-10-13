@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 6 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 6: Reflection, libraries, complete Tcl app</h1>
+      <p>Inspect running state, structure a library, finish a non-Tk application.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html">Week 1</a>
+    <a href="../week2/index.html">Week 2</a>
+    <a href="../week3/index.html">Week 3</a>
+    <a href="../week4/index.html">Week 4</a>
+    <a href="../week5/index.html">Week 5</a>
+    <a href="../week6/index.html" class="active">Week 6</a>
+    <a href="../week7/index.html">Week 7</a>
+    <a href="../week8/index.html">Week 8</a>
+    <a href="../week9/index.html">Week 9</a>
+    <a href="../week10/index.html">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-hard">Challenging · Checkpoint A</span>
+        <span class="stars" aria-label="difficulty 4 of 5">★★★★☆</span>
+        <span>Workload 8+ h</span>
+        <span>Shell: <code>tclsh</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>info on variables, procs, stack</li>
+      <li>Interactive history</li>
+      <li>unknown, tclIndex, auto_path</li>
+      <li>Module prefix and a global state array</li>
+      <li>Guestbook CGI sample as architecture (CGI optional)</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-what-done-looks-like">
+  <summary><h2>0. What “done” looks like</h2></summary>
+  <div class="learn-drop-body">
+<p>A folder, not one giant file:</p>
+<pre class="code"><code class="lang-text">week06_app/
+  app.tcl
+  lib/log.tcl
+  tclIndex        (from auto_mkindex)
+  README.md
+  samples/...</code></pre>
+<p>Run: <code>tclsh app.tcl samples/run.log</code></p>
+  </div>
+</details>
+<details class="learn-drop" id="1-info-ask-the-interpreter">
+  <summary><h2>1. <code>info</code> — ask the interpreter</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">proc add {a b} { expr {$a + $b} }
+puts [info procs add]
+puts [info args add]
+puts [info body add]
+puts [info exists add]
+set x 1
+puts [info vars]
+puts [info level]
+puts [info tclversion]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Subcommand</th><th>Use</th></tr></thead><tbody><tr><td><code>procs</code> / <code>args</code> / <code>body</code> / <code>default</code></td><td>What a proc looks like.</td></tr><tr><td><code>vars</code> / <code>locals</code> / <code>globals</code> / <code>exists</code></td><td>What names are bound.</td></tr><tr><td><code>commands</code> / <code>level</code> / <code>script</code></td><td>Stack and current file.</td></tr><tr><td><code>library</code> / <code>tclversion</code> / <code>patchlevel</code></td><td>Where you are running.</td></tr></tbody></table></div>
+<p>Use <code>info</code> <strong>before</strong> scattering <code>puts</code> everywhere.</p>
+<p>Interactive <code>history</code> / <code>redo</code> / <code>substitute</code> — type those in <code>tclsh</code>, not in a script file.</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-libraries-auto-path-unknown-tclindex">
+  <summary><h2>2. Libraries — <code>auto_path</code>, <code>unknown</code>, <code>tclIndex</code></h2></summary>
+  <div class="learn-drop-body">
+<p>When Tcl cannot find a command it calls <code>unknown</code>, which can <code>source</code> a file using <code>tclIndex</code>.</p>
+<pre class="code"><code class="lang-bash"># from week06_app/
+tclsh
+# % auto_mkindex lib *.tcl
+# % exit</code></pre>
+<pre class="code"><code class="lang-tcl"># app.tcl
+lappend auto_path [file join [file dirname [info script]] lib]
+# now Log_Parse can autoload from lib/log.tcl if tclIndex lists it</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Piece</th><th>Meaning</th></tr></thead><tbody><tr><td><code>info script</code></td><td>Path of the currently sourcing file.</td></tr><tr><td><code>lappend auto_path .../lib</code></td><td>Where to search.</td></tr><tr><td><code>auto_mkindex lib *.tcl</code></td><td>Rebuild <code>tclIndex</code> after you add a proc.</td></tr></tbody></table></div>
+<p>Style from the books: <strong>module prefix</strong> (<code>Log_Init</code>, <code>Log_Parse</code>) and <strong>one global array</strong> (<code>log(...)</code>).</p>
+  </div>
+</details>
+<details class="learn-drop" id="3-guestbook-pattern-architecture-cgi-optional">
+  <summary><h2>3. Guestbook pattern (architecture, CGI optional)</h2></summary>
+  <div class="learn-drop-body">
+<p>Columbia Ch. 3 persists data as Tcl that you can <code>source</code>:</p>
+<pre class="code"><code class="lang-tcl"># data.tcl — generated
+set rec(1,name) Ada
+set rec(1,msg)  hello</code></pre>
+<pre class="code"><code class="lang-tcl">if {[catch {source data.tcl} err]} {
+    puts &quot;no data yet: $err&quot;
+}</code></pre>
+<p>You do <strong>not</strong> need HTTP. Steal: commands, files, <code>catch</code>, executable Tcl as storage.</p>
+  </div>
+</details>
+<details class="learn-drop" id="4-suggested-log-filter-app">
+  <summary><h2>4. Suggested log-filter app</h2></summary>
+  <div class="learn-drop-body">
+<p><code>lib/log.tcl</code>:</p>
+<pre class="code"><code class="lang-tcl">proc Log_Init {} {
+    global log
+    set log(counts,ERROR) 0
+    set log(counts,WARN) 0
+    set log(lines) {}
+}
+
+proc Log_ParseLine {line} {
+    global log
+    set line [string trim $line]
+    if {[regexp {^(ERROR|WARN|INFO)} $line -&gt; sev]} {
+        incr log(counts,$sev)
+        lappend log(lines) $line
+    }
+}
+
+proc Log_Dump {} {
+    global log
+    foreach sev [list ERROR WARN INFO] {
+        if {[info exists log(counts,$sev)]} {
+            puts &quot;$sev $log(counts,$sev)&quot;
+        }
+    }
+}</code></pre>
+<p><code>app.tcl</code>:</p>
+<pre class="code"><code class="lang-tcl">lappend auto_path [file join [file dirname [info script]] lib]
+Log_Init
+set path [lindex $argv 0]
+if {[catch {open $path r} ch]} {
+    puts stderr $ch
+    exit 1
+}
+while {[gets $ch line] &gt;= 0} {
+    Log_ParseLine $line
+}
+close $ch
+Log_Dump</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Must</th><th>How this sample does it</th></tr></thead><tbody><tr><td>Multi-file</td><td><code>app.tcl</code> + <code>lib/*.tcl</code></td></tr><tr><td>Global array</td><td><code>log(...)</code></td></tr><tr><td><code>gets</code> + regexp</td><td>parse loop</td></tr><tr><td><code>catch</code> on I/O</td><td><code>open</code></td></tr><tr><td>No Tk</td><td><code>tclsh</code></td></tr></tbody></table></div>
+<p>Persist metrics as Tcl if you want the guestbook shape:</p>
+<pre class="code"><code class="lang-tcl">set out [open metrics.tcl w]
+puts $out [list set log(counts,ERROR) $log(counts,ERROR)]
+close $out</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="5-five-teaching-examples">
+  <summary><h2>5. Five teaching examples</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="a-info-exists-before-read">A — <code>info exists</code> before read</h3>
+<pre class="code"><code class="lang-tcl">if {![info exists log(counts,ERROR)]} { set log(counts,ERROR) 0 }</code></pre>
+<h3 id="b-auto-path-relative-to-the-script">B — <code>auto_path</code> relative to the script</h3>
+<pre class="code"><code class="lang-tcl">lappend auto_path [file join [file dirname [info script]] lib]</code></pre>
+<h3 id="c-source-inside-catch">C — <code>source</code> inside <code>catch</code></h3>
+<pre class="code"><code class="lang-tcl">catch {source state.tcl}</code></pre>
+<h3 id="d-bug-then-fix-tk-too-early">D — BUG then FIX (Tk too early)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: pack [button .q -text Quit]  in Checkpoint A
+# FIX: tclsh-only; Checkpoint B is Week 10</code></pre>
+<h3 id="e-bug-then-fix-stale-tclindex">E — BUG then FIX (stale tclIndex)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: added Log_Dump but auto_mkindex not re-run
+# FIX: auto_mkindex lib *.tcl</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="6-lab-checklist-checkpoint-a">
+  <summary><h2>6. Lab checklist (Checkpoint A)</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li><code>week06_app/</code> with <code>app.tcl</code> + <code>lib/*.tcl</code></li><li><code>auto_mkindex</code> → <code>tclIndex</code></li><li>Module prefix + one global array</li><li>Parse with <code>gets</code>/<code>read</code> + regexp</li><li>Persist something as Tcl <code>set</code> / <code>array set</code> (optional but on-brand)</li><li><code>catch</code> on I/O</li><li>README: how to run, commands, limits</li><li><strong>No Tk</strong></li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="7-deliverable-skeleton">
+  <summary><h2>7. Deliverable skeleton</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl"># app.tcl
+lappend auto_path [file join [file dirname [info script]] lib]
+if {$argc &lt; 1} {
+    puts &quot;usage: tclsh app.tcl FILE&quot;
+    exit 1
+}
+Log_Init
+# TODO: open/gets/Log_ParseLine/close/Log_Dump</code></pre>
+<p>README: <code>tclsh app.tcl samples/run.log</code> — what it prints, what it will not do.</p>
+  </div>
+</details>
+<details class="learn-drop" id="8-when-you-get-stuck">
+  <summary><h2>8. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<p>If a command is “invalid”, check <code>auto_path</code> and <code>tclIndex</code>. If state vanishes, you forgot <code>global log</code>. Do not open <code>wish</code> to “see” it.</p>
+  </div>
+</details>
+<details class="learn-drop" id="9-readings-pointer">
+  <summary><h2>9. Readings pointer</h2></summary>
+  <div class="learn-drop-body">
+<p>Columbia Part I Ch. 3 (architecture); Tk Book draft Ch. 8–9.</p>
+<p><em>End of Week 6 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab, or run the examples in <code>tclsh</code>.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Summative Tcl-only tool (log filter or guestbook-like records)</li>
+      <li>Split into app.tcl + lib/*.tcl</li>
+      <li>Global state array and catch on I/O</li>
+      <li>No Tk</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p>Checkpoint A is a real <code>tclsh</code> folder. The sandbox is only for tiny proc checks.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 6 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../week5/index.html">Week 5</a>
+      <a href="../week7/index.html">Week 7</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"), {
+        note: "Checkpoint A: tclsh-only app.tcl + lib. Sandbox is not the deliverable.",
+        examples: [
+          { id: "proc", title: "tiny parse helper", code: "proc bump {n} {\n    return [expr {$n + 1}]\n}\nputs [bump 3]" }
+        ]
+      });
+      if (window.WeekQuiz) WeekQuiz.mount(6);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>

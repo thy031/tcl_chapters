@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 5 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 5: eval, files, and program glue</h1>
+      <p>Read files and drive other programs — the core Tool Command Language use case.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html">Week 1</a>
+    <a href="../week2/index.html">Week 2</a>
+    <a href="../week3/index.html">Week 3</a>
+    <a href="../week4/index.html">Week 4</a>
+    <a href="../week5/index.html" class="active">Week 5</a>
+    <a href="../week6/index.html">Week 6</a>
+    <a href="../week7/index.html">Week 7</a>
+    <a href="../week8/index.html">Week 8</a>
+    <a href="../week9/index.html">Week 9</a>
+    <a href="../week10/index.html">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-hard">Challenging</span>
+        <span class="stars" aria-label="difficulty 4 of 5">★★★★☆</span>
+        <span>Workload 6–8 h</span>
+        <span>Shell: <code>tclsh</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>Why eval needs list</li>
+      <li>subst</li>
+      <li>exec and pipelines</li>
+      <li>open / gets / puts / read / close; seek/tell</li>
+      <li>glob, file tests, cd / pwd</li>
+      <li>Pipeline errors raised on close</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-recap">
+  <summary><h2>0. Recap</h2></summary>
+  <div class="learn-drop-body">
+<p>Week 4 taught <code>catch</code>. This week every I/O and <code>exec</code> goes through it. Week 3 lists hold filenames from <code>glob</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="1-eval-needs-list">
+  <summary><h2>1. <code>eval</code> needs <code>list</code></h2></summary>
+  <div class="learn-drop-body">
+<h3 id="type-this">Type this</h3>
+<pre class="code"><code class="lang-tcl">set a &quot;two words&quot;
+eval puts $a
+# vs
+eval [list puts $a]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Form</th><th>After substitution</th><th>Risk</th></tr></thead><tbody><tr><td><code>eval puts $a</code></td><td><code>puts</code> + <code>two</code> + <code>words</code></td><td>Extra arguments.</td></tr><tr><td><code>eval [list puts $a]</code></td><td><code>puts</code> with <strong>one</strong> arg <code>two words</code></td><td>Safe.</td></tr></tbody></table></div>
+<p><strong>Rule:</strong> <code>eval [list cmd $arg1 $arg2]</code> — never glue untrusted text with quotes.</p>
+<p><code>subst</code> does <code>$</code> <code>[]</code> <code>\</code> <strong>without</strong> running a command (<code>-novariables</code> / <code>-nocommands</code> / <code>-nobackslashes</code>). Type the book examples.</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-exec-run-other-programs">
+  <summary><h2>2. <code>exec</code> — run other programs</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">if {[catch {exec uname -s} out]} {
+    puts &quot;exec failed: $out&quot;
+} else {
+    puts $out
+}</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Syntax (in the <code>exec</code> args)</th><th>Meaning</th></tr></thead><tbody><tr><td>`</td><td><code> / </code></td></tr><tr><td><code>&gt;</code> <code>&gt;&gt;</code> <code>2&gt;</code> <code>&gt;&amp;</code> <code>&lt;</code> <code>&lt;&lt;</code> <code>@</code></td><td>Redirection (books).</td></tr><tr><td>trailing <code>&amp;</code></td><td>Background.</td></tr><tr><td>non-zero / stderr</td><td>Often a <strong>Tcl error</strong> — <code>catch</code> it.</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="3-channels-open-gets-puts-read-close">
+  <summary><h2>3. Channels — <code>open</code>, <code>gets</code>, <code>puts</code>, <code>read</code>, <code>close</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">set path /tmp/week05_demo.txt
+set ch [open $path w]
+puts $ch &quot;hello&quot;
+close $ch
+
+set ch [open $path r]
+set line [gets $ch]
+close $ch
+puts $line</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>Role</th></tr></thead><tbody><tr><td><code>open path w</code> / <code>r</code></td><td>Channel id (a string).</td></tr><tr><td><code>puts $ch ...</code></td><td>Write to that channel.</td></tr><tr><td><code>gets $ch</code></td><td>One line (no newline); <code>-1</code> at EOF if you use the var form.</td></tr><tr><td><code>read $ch</code></td><td>Rest of the file.</td></tr><tr><td><code>close $ch</code></td><td>Always. Pipeline <code>close</code> can <strong>error</strong> — <code>catch</code> it.</td></tr><tr><td><code>seek</code> / <code>tell</code> / <code>flush</code> / <code>eof</code></td><td>Random access / buffers.</td></tr></tbody></table></div>
+<p><code>open &quot;|uname -s&quot; r</code> is a <strong>pipeline channel</strong> — same <code>gets</code>/<code>close</code> story.</p>
+  </div>
+</details>
+<details class="learn-drop" id="4-file-and-glob">
+  <summary><h2>4. <code>file</code> and <code>glob</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">puts [file exists /tmp]
+puts [file isdirectory /tmp]
+puts [file tail /tmp/a/b.tcl]
+puts [file dirname /tmp/a/b.tcl]
+puts [file extension b.tcl]
+puts [glob -nocomplain /tmp/*.txt]</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>Role</th></tr></thead><tbody><tr><td><code>file exists</code> / <code>isfile</code> / <code>isdirectory</code></td><td>Tests.</td></tr><tr><td><code>file tail</code> / <code>dirname</code> / <code>rootname</code> / <code>extension</code></td><td>Path pieces.</td></tr><tr><td><code>glob -nocomplain</code></td><td>Existing names; empty list if none (no error).</td></tr></tbody></table></div>
+<p><code>pwd</code> / <code>cd</code> are <strong>process-wide</strong>. If you <code>cd</code> in a walk, save and restore.</p>
+  </div>
+</details>
+<details class="learn-drop" id="5-findfile-style-walk-columbia-ch-9">
+  <summary><h2>5. FindFile-style walk (Columbia Ch. 9)</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">proc FindFile {dir pattern} {
+    set saved [pwd]
+    if {[catch {cd $dir}]} {
+        return
+    }
+    foreach f [glob -nocomplain *] {
+        if {[file isdirectory $f]} {
+            FindFile [file join $saved $f] $pattern
+        } elseif {[string match $pattern $f]} {
+            puts [file join [pwd] $f]
+        }
+    }
+    cd $saved
+}</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Line</th><th>Why</th></tr></thead><tbody><tr><td><code>set saved [pwd]</code></td><td>Restore even if you recurse.</td></tr><tr><td><code>catch {cd $dir}</code></td><td>Permission / missing dir.</td></tr><tr><td><code>glob -nocomplain *</code></td><td>Children; folders and files.</td></tr><tr><td><code>string match $pattern $f</code></td><td>Week 2 glob.</td></tr></tbody></table></div>
+  </div>
+</details>
+<details class="learn-drop" id="6-run-and-capture-lab-shape">
+  <summary><h2>6. Run-and-capture lab shape</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">proc run_capture {cmd outFile errFile} {
+    global errorInfo
+    if {[catch {eval [linsert $cmd 0 exec]} result]} {
+        set ch [open $errFile w]
+        puts $ch $result
+        close $ch
+        return 1
+    }
+    set ch [open $outFile w]
+    puts $ch $result
+    close $ch
+    return 0
+}</code></pre>
+<p>Build the <code>exec</code> with <code>list</code> / <code>linsert</code>, not string concat.</p>
+  </div>
+</details>
+<details class="learn-drop" id="7-five-teaching-examples">
+  <summary><h2>7. Five teaching examples</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="a-safe-eval">A — safe <code>eval</code></h3>
+<pre class="code"><code class="lang-tcl">eval [list puts $msg]</code></pre>
+<h3 id="b-catch-around-exec">B — <code>catch</code> around <code>exec</code></h3>
+<pre class="code"><code class="lang-tcl">catch {exec false} msg</code></pre>
+<h3 id="c-write-then-read-a-file">C — write then read a file</h3>
+<pre class="code"><code class="lang-tcl">set ch [open $p w]; puts $ch hi; close $ch</code></pre>
+<h3 id="d-bug-then-fix-eval-user">D — BUG then FIX (<code>eval $user</code>)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: eval $user
+# FIX: eval [list puts $user]</code></pre>
+<h3 id="e-bug-then-fix-forgot-close">E — BUG then FIX (forgot <code>close</code>)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: set ch [open $p r]; gets $ch; # leak
+# FIX: close $ch  (and catch close on pipelines)</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="8-lab-checklist">
+  <summary><h2>8. Lab checklist</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li>Run-and-capture (<code>exec</code> or <code>open &quot;|...&quot;</code>)</li><li>Write stdout/stderr to files</li><li><code>glob</code> a directory</li><li>Recursive FindFile-style walk</li><li>README: one wrapped command + <code>catch</code> on non-zero</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="9-deliverable-skeleton-week05-gluetcl">
+  <summary><h2>9. Deliverable skeleton — <code>week05_glue.tcl</code></h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl"># week05_glue.tcl
+# Wrapped command: uname -s   (change me)
+# Non-zero: catch {exec ...}; write message to err.txt
+
+proc run_capture {args} {
+    if {[catch {eval [linsert $args 0 exec]} out]} {
+        return [list 1 $out]
+    }
+    return [list 0 $out]
+}
+
+# TODO: glob, FindFile, write files</code></pre>
+<p>README one paragraph: command, how you detected failure, where output went.</p>
+  </div>
+</details>
+<details class="learn-drop" id="10-when-you-get-stuck">
+  <summary><h2>10. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<p>If <code>eval</code> “eats” spaces, you forgot <code>list</code>. If a pipeline “worked” then failed later, <code>catch</code> the <code>close</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="11-readings-pointer">
+  <summary><h2>11. Readings pointer</h2></summary>
+  <div class="learn-drop-body">
+<p>Columbia Part I Ch. 9; Tk Book draft Ch. 6 <em>Eval</em> and Ch. 7 <em>Working with UNIX</em>.</p>
+<p><em>End of Week 5 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab, or run the examples in <code>tclsh</code>.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Run-and-capture script (exec or pipeline)</li>
+      <li>Write stdout/stderr to files</li>
+      <li>Glob a directory</li>
+      <li>Recursive FindFile-style walk (Columbia Ch. 9)</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p>The sandbox cannot <code>exec</code> or open files. Use it for grouping practice; run the lab in <code>tclsh</code>.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 5 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../week4/index.html">Week 4</a>
+      <a href="../week6/index.html">Week 6</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"), {
+        note: "No exec/open here. Type eval/list grouping, then run week05_glue.tcl in tclsh.",
+        examples: [
+          { id: "eval", title: "quotes vs grouping (puts)", code: "set a \"two words\"\nputs $a\nputs \"$a\"\nputs {$a}" }
+        ]
+      });
+      if (window.WeekQuiz) WeekQuiz.mount(5);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>

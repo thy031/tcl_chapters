@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 9 — Tcl/Tk programme</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+  <div class="wrap wide">
+    <header>
+      <h1>Week 9: Dialogs, text, and canvas</h1>
+      <p>Build a focused viewer (text log or simple drawing), not a widget museum.</p>
+    </header>
+    <nav class="bar">
+    <a href="../week1/index.html">Week 1</a>
+    <a href="../week2/index.html">Week 2</a>
+    <a href="../week3/index.html">Week 3</a>
+    <a href="../week4/index.html">Week 4</a>
+    <a href="../week5/index.html">Week 5</a>
+    <a href="../week6/index.html">Week 6</a>
+    <a href="../week7/index.html">Week 7</a>
+    <a href="../week8/index.html">Week 8</a>
+    <a href="../week9/index.html" class="active">Week 9</a>
+    <a href="../week10/index.html">Week 10</a>
+    <a href="../quiz/index.html">Review quiz</a>
+    <a href="../index.html">Hub</a>
+    </nav>
+    <section class="card">
+      <div class="meta">
+        <span class="diff-hard">Challenging</span>
+        <span class="stars" aria-label="difficulty 4 of 5">★★★★☆</span>
+        <span>Workload 6–8 h</span>
+        <span>Shell: <code>wish</code></span>
+      </div>
+    </section>
+    <div class="tabs">
+      <button type="button" class="active" data-show="learning">Learning</button>
+      <button type="button" data-show="practice">Practice</button>
+      <button type="button" data-show="quiz">Quiz</button>
+    </div>
+    <section class="card learn md-doc" data-panel="learning">
+<details class="learn-drop">
+  <summary><h2>Topics</h2></summary>
+  <div class="learn-drop-body">
+      <ul class="list">
+      <li>focus, grabs, tkwait, update</li>
+      <li>File-selection dialog pattern</li>
+      <li>text: indices, marks, tags, bindings</li>
+      <li>canvas: items, coordinates, operations</li>
+      <li>Optional: selections and clipboard (Ch. 20)</li>
+      </ul>
+  </div>
+</details>
+<details class="learn-drop" id="0-focus-grabs-dialogs-everyone">
+  <summary><h2>0. Focus, grabs, dialogs (everyone)</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">focus .e
+# grab .dlg
+# tkwait window .dlg
+# grab release .dlg
+# update idletasks</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>Role</th></tr></thead><tbody><tr><td><code>focus</code></td><td>Which widget gets keys.</td></tr><tr><td><code>grab</code></td><td>Modal: events stay in that subtree.</td></tr><tr><td><code>tkwait window</code> / <code>variable</code> / <code>visibility</code></td><td>Wait <strong>without</strong> a busy <code>while</code> that freezes Tcl.</td></tr><tr><td><code>update</code> / <code>update idletasks</code></td><td>Drain events / geometry; can <strong>re-enter</strong> your script.</td></tr></tbody></table></div>
+<p>Dialog pattern: build → <code>grab</code> → <code>tkwait</code> → read result → <code>destroy</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="1-text-track-indices-marks-tags">
+  <summary><h2>1. Text track — indices, marks, tags</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">text .t -width 60 -height 16 -wrap none
+pack .t -fill both -expand 1
+.t insert end &quot;ERROR boom\n&quot;
+.t insert end &quot;INFO ok\n&quot;
+.t tag configure err -foreground red
+.t tag add err 1.0 1.end
+.t see end</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Index</th><th>Meaning</th></tr></thead><tbody><tr><td><code>1.0</code></td><td>Line 1, character 0 (lines start at 1).</td></tr><tr><td><code>end</code></td><td>Just after the last char.</td></tr><tr><td><code>insert</code></td><td>Caret.</td></tr><tr><td><code>end - 1 lines</code></td><td>Modifiers (see Ch. 18).</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Tags vs marks</th></tr></thead><tbody><tr><td><strong>Tags</strong> style and bind ranges (<code>tag configure</code>, <code>tag bind</code>).</td></tr><tr><td><strong>Marks</strong> named positions that move with edits.</td></tr></tbody></table></div>
+<pre class="code"><code class="lang-tcl">.t search -forwards ERROR 1.0 end
+.t get 1.0 end
+.t delete 1.0 end</code></pre>
+<p>Lab: color ERROR/WARN, search highlight, dump to a file (<code>open</code> + <code>.t get</code> + <code>catch</code>).</p>
+  </div>
+</details>
+<details class="learn-drop" id="2-canvas-track-items-coords-bind">
+  <summary><h2>2. Canvas track — items, coords, bind</h2></summary>
+  <div class="learn-drop-body">
+<pre class="code"><code class="lang-tcl">canvas .c -width 300 -height 200 -background white
+pack .c
+set r [.c create rectangle 20 20 80 80 -fill skyblue -tags box]
+.c create text 50 50 -text hi
+.c bind box &lt;Button-1&gt; {puts clicked}
+.c move box 10 0</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Idea</th><th>Detail</th></tr></thead><tbody><tr><td>Origin</td><td><code>0,0</code> is <strong>top-left</strong>.</td></tr><tr><td>Items</td><td><code>arc</code> <code>line</code> <code>oval</code> <code>rectangle</code> <code>text</code> <code>window</code> …</td></tr><tr><td>Id vs tag</td><td><code>create</code> returns an id; tags group items.</td></tr><tr><td>Ops</td><td><code>coords</code> <code>itemconfigure</code> <code>move</code> <code>scale</code> <code>delete</code> <code>find</code>.</td></tr></tbody></table></div>
+<p>Window coords (<code>%x %y</code> on the widget) are <strong>not</strong> automatically canvas coords if you have scrolled — convert as in the book.</p>
+<p>Optional <code>postscript</code> for a print dump.</p>
+<p>Lab: ≥2 item types + one <code>bind</code> (hello-canvas, annotator, or double-slider idea from the chapter).</p>
+  </div>
+</details>
+<details class="learn-drop" id="3-optional-ch-20">
+  <summary><h2>3. Optional Ch. 20</h2></summary>
+  <div class="learn-drop-body">
+<p>Selections and clipboard — only if your viewer copies text.</p>
+  </div>
+</details>
+<details class="learn-drop" id="4-five-teaching-examples">
+  <summary><h2>4. Five teaching examples</h2></summary>
+  <div class="learn-drop-body">
+<h3 id="a-dialog-wait">A — dialog wait</h3>
+<pre class="code"><code class="lang-tcl">grab .dlg
+tkwait window .dlg</code></pre>
+<h3 id="b-text-tag-color">B — text tag color</h3>
+<pre class="code"><code class="lang-tcl">.t tag configure err -foreground red
+.t tag add err 1.0 1.end</code></pre>
+<h3 id="c-canvas-bind-on-a-tag">C — canvas bind on a tag</h3>
+<pre class="code"><code class="lang-tcl">.c bind box &lt;Button-1&gt; ClickBox</code></pre>
+<h3 id="d-bug-then-fix-tkwait-forgotten">D — BUG then FIX (<code>tkwait</code> forgotten)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: create dialog; immediately read the entry (empty)
+# FIX: grab + tkwait then read</code></pre>
+<h3 id="e-bug-then-fix-text-index-00">E — BUG then FIX (text index <code>0.0</code>)</h3>
+<pre class="code"><code class="lang-tcl"># BUG: .t insert 0.0 ...
+# FIX: 1.0 is the start</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="5-lab-checklist-choose-one">
+  <summary><h2>5. Lab checklist (choose one)</h2></summary>
+  <div class="learn-drop-body">
+<ul class="list"><li><strong>Text:</strong> tagged log viewer (severity colors, search highlight, dump to file)</li><li><strong>OR canvas:</strong> ≥2 item types and one binding</li><li>Short note on focus/grab if you used a dialog</li></ul>
+  </div>
+</details>
+<details class="learn-drop" id="6-deliverable-skeletons">
+  <summary><h2>6. Deliverable skeletons</h2></summary>
+  <div class="learn-drop-body">
+<p><strong>Text:</strong></p>
+<pre class="code"><code class="lang-tcl">#!/usr/bin/env wish
+# week09_text.tcl
+proc LoadLog {path} { # open + insert + tag ERROR/WARN }
+proc Search {pat} { # .t search + tag highlight }
+proc Dump {} { # .t get 1.0 end → file, catch }
+# TODO: pack text + entry + buttons</code></pre>
+<p><strong>Canvas:</strong></p>
+<pre class="code"><code class="lang-tcl">#!/usr/bin/env wish
+# week09_canvas.tcl
+# items: rectangle + text; bind &lt;Button-1&gt; on tag</code></pre>
+  </div>
+</details>
+<details class="learn-drop" id="7-when-you-get-stuck">
+  <summary><h2>7. When you get stuck</h2></summary>
+  <div class="learn-drop-body">
+<p>Text: indices are <code>line.char</code>, not Python slices. Canvas: draw on paper first (y grows <strong>down</strong>). Dialogs: if the caller continued too soon, you skipped <code>tkwait</code>.</p>
+  </div>
+</details>
+<details class="learn-drop" id="8-readings-pointer">
+  <summary><h2>8. Readings pointer</h2></summary>
+  <div class="learn-drop-body">
+<p>Tk Book draft Ch. 17, and <strong>either</strong> Ch. 18 <strong>or</strong> Ch. 19 (skim the other). Optional Ch. 20.</p>
+<p><em>End of Week 9 line-by-line planner.</em></p>
+  </div>
+</details>
+      <p class="why"><strong>Tip:</strong> After a section, switch to the <strong>Practice</strong> tab, or run the examples in <code>wish</code>.</p>
+    </section>
+    <section class="card hidden" data-panel="practice" id="lab-playground">
+      <h2>Practice</h2>
+      <ul class="list">
+      <li>Text track: tagged log viewer (search highlight, dump to file)</li>
+      <li>OR canvas track: two item types and one bind</li>
+      </ul>
+      <p>Follow the typed exercises in the <strong>Learning</strong> tab.</p>
+      <h3>Coding lab — edit, run, debug</h3>
+      <p>Text and canvas widgets need <code>wish</code>. Sandbox is Tcl-only.</p>
+      <div id="tcl-lab-root"></div>
+    </section>
+    <section class="card hidden" data-panel="quiz" id="week-quiz-panel">
+      <h2>Week 9 quiz</h2>
+      <p>Two or three questions on <strong>what this week’s code does</strong>. Pick an answer, then Score quiz.</p>
+      <div id="week-quiz"></div>
+      <div id="week-quiz-score" class="card"></div>
+    </section>
+    <nav class="bar">
+      <a href="../week8/index.html">Week 8</a>
+      <a href="../week10/index.html">Week 10</a>
+    </nav>
+    <footer>Practical Tcl/Tk for Scripting and Tool Glue</footer>
+  </div>
+  <script src="../assets/course.js"></script>
+  <script src="../assets/tcl-lab.js"></script>
+  <script src="../assets/quiz.js"></script>
+  <script src="../assets/week-quiz.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.TclLab) TclLab.mount(document.getElementById("tcl-lab-root"), {
+        note: "Pick text or canvas. Run the deliverable with wish.",
+        examples: [
+          { id: "index", title: "string stand-in for text indices", code: "set line \"ERROR boom\"\nputs [string range $line 0 4]\nputs [string toupper $line]" }
+        ]
+      });
+      if (window.WeekQuiz) WeekQuiz.mount(9);
+      if (location.hash === "#lab-playground") showPanel("practice");
+      if (location.hash === "#quiz") showPanel("quiz");
+    });
+  </script>
+</body>
+</html>
